@@ -30,7 +30,7 @@ public class UserController {
     @Resource
     private UserService userService;
 
-    @ApiOperation("根据用户ID查询用户信息T")
+    @ApiOperation("根据用户ID查询用户信息Test")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "userId",value = "用户编号",readOnly = true,paramType = "path")
     })
