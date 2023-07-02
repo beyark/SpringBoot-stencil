@@ -1,0 +1,54 @@
+# 应用名称
+server:
+  port: 8080
+  tomcat:
+    max-http-form-post-size: 200MB
+    uri-encoding: UTF-8
+    background-processor-delay: 30
+spring:
+  main:
+    allow-circular-references: true
+  # ===== 避免spring boot版本和swagger版本不一致报错 ===== #
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  #数据源
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/trkj?useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2B8&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    hikari:
+      minimum-idle: 5
+      idle-timeout: 600000
+      maximum-pool-size: 10
+      auto-commit: true
+      pool-name: MyHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  jackson:
+  date-format: yyyy-MM-dd HH:mm:ss
+  time-zone: GMT+8
+mybatis-plus:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    jdbc-type-for-null: 'null' #注意：单引号
+    call-setters-on-nulls: true
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      #配置逻辑删除  没删除的为0 删除的为1
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+# ===== 自定义swagger配置 ===== #
+swagger:
+  enable: true
+  application-name: xxx项目文档
+  application-version: v1.0
+  application-description: 文档说明
+  try-host: http://127.0.0.1:${server.port}
+
+
