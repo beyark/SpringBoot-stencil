@@ -27,7 +27,7 @@ public class User implements Serializable {
     private Long userId;
 
     /**
-     * 用户名
+     * 用户名123
      */
     private String userName;
 
