@@ -20,19 +20,19 @@ import java.io.Serializable;
 //@ApiModel("用户实体类")
 public class User implements Serializable {
     /**
-     * 用户编号321
+     * 用户编号123
      */
     @TableId(type = IdType.AUTO)
 //    @ApiModelProperty("用户编号")
     private Long userId;
 
     /**
-     * 用户名321
+     * 用户名
      */
     private String userName;
 
     /**
-     * 密码321
+     * 密码
      */
     private String userPwd;
 
