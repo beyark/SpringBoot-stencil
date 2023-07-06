@@ -20,7 +20,7 @@ import java.io.Serializable;
 //@ApiModel("用户实体类")
 public class User implements Serializable {
     /**
-     * 用户编号123
+     * 用户编号
      */
     @TableId(type = IdType.AUTO)
 //    @ApiModelProperty("用户编号")
