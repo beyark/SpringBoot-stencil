@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.it.mapper.ActivityActivityMapper">
+
+    <resultMap id="BaseResultMap" type="com.it.domain.ActivityActivity">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="activityOne" column="activity_one" jdbcType="VARCHAR"/>
+            <result property="activityTwo" column="activity_two" jdbcType="VARCHAR"/>
+        <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,activity_one,activity_two,historyProcessId
+    </sql>
+</mapper>

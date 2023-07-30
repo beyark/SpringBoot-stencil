@@ -33,6 +33,16 @@ public class AjaxResponse {
         resultBean.setMessage(e.getMessage());
         return resultBean;
     }
+
+    public static AjaxResponse error(CustomError e,Object data) {
+        AjaxResponse resultBean = new AjaxResponse();
+        resultBean.setSuccess(false);
+        resultBean.setCode(e.getCode());
+        resultBean.setMessage(e.getMessage());
+        resultBean.setData(data);
+        return resultBean;
+    }
+
     /**
      * 请求正常的响应时进行数据封装
      * @return AjaxResponse 封闭后的响应对象

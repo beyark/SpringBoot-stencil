@@ -5,7 +5,10 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.it.vo.AjaxResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.NestedRuntimeException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -14,6 +17,10 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * 全局异常处理
@@ -47,8 +54,19 @@ public class GlobalExceptionHandler {
             log.info("类型无法转换");
             return AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR,"类型无法转换"));
         }
-        return AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR,e.getMessage()));
 
+        //全局数据效验异常处理
+        if (e instanceof BindException){
+            log.info("数据校验错误");
+                List<FieldError> fieldErrors = ((BindException) e).getFieldErrors();
+            Map<String, Object> map = new HashMap<>();
+            for (FieldError fieldError : fieldErrors) {
+                System.out.println(fieldError.getField() + ":" + fieldError.getDefaultMessage());
+                map.put(fieldError.getField(),fieldError.getDefaultMessage());
+            }
+            return AjaxResponse.error(new CustomError(CustomErrorType.Data_Validation_ERROR,"数据效验失败"),map);
+        }
+        return AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR,e.getMessage()));
     }
     @ExceptionHandler({NestedRuntimeException.class})
     @ResponseBody

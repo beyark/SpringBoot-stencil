@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.it.mapper.ActivityGatewayMapper">
+
+    <resultMap id="BaseResultMap" type="com.it.domain.ActivityGateway">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="activityId" column="activity_id" jdbcType="VARCHAR"/>
+            <result property="gatewayId" column="gateway_id" jdbcType="VARCHAR"/>
+            <result property="value" column="value" jdbcType="VARCHAR"/>
+            <result property="probabilityValue" column="probability_value" jdbcType="VARCHAR"/>
+            <result property="sideId" column="side_id" jdbcType="INTEGER"/>
+            <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,activity_id,gateway_id,value,
+        probability_value,side_id,historyProcessId
+    </sql>
+</mapper>
