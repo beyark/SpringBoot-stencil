@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.it.mapper.EmulationTimeOutcomeMapper">
+
+    <resultMap id="BaseResultMap" type="com.it.domain.EmulationTimeOutcome">
+            <id property="id" column="id" jdbcType="INTEGER"/>
+            <result property="disposeTimeMax" column="dispose_time_max" jdbcType="TIMESTAMP"/>
+            <result property="disposeTimeMin" column="dispose_time_min" jdbcType="TIMESTAMP"/>
+            <result property="disposeTimeAvg" column="dispose_time_avg" jdbcType="TIMESTAMP"/>
+            <result property="awaitTimeMax" column="await_time_max" jdbcType="TIMESTAMP"/>
+            <result property="awaitTimeMin" column="await_time_min" jdbcType="TIMESTAMP"/>
+            <result property="awaitTimeAvg" column="await_time_avg" jdbcType="TIMESTAMP"/>
+            <result property="finishTimeMax" column="finish_time_max" jdbcType="TIMESTAMP"/>
+            <result property="finishTimeMin" column="finish_time_min" jdbcType="TIMESTAMP"/>
+            <result property="finishTimeAvg" column="finish_time_avg" jdbcType="TIMESTAMP"/>
+            <result property="count" column="count" jdbcType="INTEGER"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+            <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,dispose_time_max,dispose_time_min,
+        dispose_time_avg,await_time_max,await_time_min,
+        await_time_avg,finish_time_max,finish_time_min,
+        finish_time_avg,count,create_time,
+        history_process_id
+    </sql>
+</mapper>

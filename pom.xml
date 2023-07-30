@@ -113,7 +113,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.it.MybatisDomeApplication</mainClass>
+                    <mainClass>com.it.SpringBootStencilApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>

@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import java.io.Serializable;
 
 /**
@@ -24,11 +27,15 @@ public class User implements Serializable {
      */
     @TableId(type = IdType.AUTO)
 //    @ApiModelProperty("用户编号")
+    @NotNull(message = "不能为空")
+    @Min(value = 0, message = "值只能为0-10")
+    @Max(value = 10, message = "值只能为0-10")
     private Long userId;
 
     /**
      * 用户名123
      */
+
     private String userName;
 
     /**

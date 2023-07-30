@@ -1,5 +1,6 @@
 package com.it.controller;
 
+import com.it.domain.User;
 import com.it.exception.CustomError;
 import com.it.exception.CustomErrorType;
 import com.it.service.UserService;
@@ -16,6 +17,7 @@ import org.apache.ibatis.annotations.Delete;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.validation.Valid;
 
 /**
  * @program: SpringBoot-stencil
@@ -35,7 +37,7 @@ public class UserController {
             @ApiImplicitParam(name = "userId",value = "用户编号",readOnly = true,paramType = "path")
     })
     @GetMapping("/getUser/{userId}")
-    public AjaxResponse getUser(@PathVariable("userId") int userId){
+    public AjaxResponse getUser(@Valid @PathVariable(value = "userId",required = true) Long userId){
         return AjaxResponse.success(userService.getUser(userId));
     }
 

@@ -20,7 +20,7 @@ public class SwaggerConfig {
 
     @Bean
     public Docket createRestApi(){
-        Docket docket = new Docket(DocumentationType.OAS_30).groupName("xxx项目");
+        Docket docket = new Docket(DocumentationType.OAS_30).groupName("流程仿真项目");
         docket.apiInfo(apiInfo())
                 .select()
                 //扫描注解的位置
@@ -39,7 +39,7 @@ public class SwaggerConfig {
                 //服务Url
                 "urn:tos",
                 contact,
-                "xxx项目 1.0",
+                "流程仿真项目 1.0",
                 "http://www.apache.org/licenses/LICENSE-2.0",
                 new ArrayList());
     }

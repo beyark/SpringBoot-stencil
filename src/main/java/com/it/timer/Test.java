@@ -13,6 +13,6 @@ import org.springframework.stereotype.Component;
 public class Test {
     @Scheduled(cron = "*/5 * * * * *") // 5秒
     public void test(){
-        System.out.println("123");
+//        System.out.println("123");
     }
 }

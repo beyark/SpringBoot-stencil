@@ -7,6 +7,7 @@ import com.it.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.List;
 
 /**
 * @author 胡浩
@@ -20,7 +21,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private UserMapper userMapper;
 
     @Override
-    public User getUser(int id) {
+    public User getUser(Long id) {
         return userMapper.selectById(id);
     }
 
@@ -29,6 +30,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         int i = userMapper.deleteById(userId);
         return i == 1 ? true : false;
     }
+
 }
 
 

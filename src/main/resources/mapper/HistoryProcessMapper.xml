@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.it.mapper.HistoryProcessMapper">
+
+    <resultMap id="BaseResultMap" type="com.it.domain.HistoryProcess">
+            <id property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
+            <result property="id" column="id" jdbcType="VARCHAR"/>
+            <result property="name" column="name" jdbcType="VARCHAR"/>
+            <result property="description" column="description" jdbcType="VARCHAR"/>
+            <result property="userName" column="user_name" jdbcType="VARCHAR"/>
+            <result property="startEmulationTime" column="start_emulation_time" jdbcType="TIMESTAMP"/>
+            <result property="endEmulationTime" column="end_emulation_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        history_process_id,id,name,description,
+        start_emulation_time,end_emulation_time,update_time,user_name
+        create_time,user_name
+    </sql>
+
+    <insert id="inserts" parameterType="com.it.domain.HistoryProcess" useGeneratedKeys="true" keyProperty="historyProcessId" keyColumn="history_process_id">
+        insert into sys_history_process(id,name,description,
+                                    start_emulation_time,end_emulation_time,update_time,
+                                    create_time,user_name) values(#{id}, #{name}, #{description},#{startEmulationTime},
+                                                        #{endEmulationTime},#{updateTime},#{createTime},#{userName})
+    </insert>
+
+</mapper>

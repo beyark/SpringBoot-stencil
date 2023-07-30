@@ -1,6 +1,8 @@
 package com.it.exception;
 
 public enum CustomErrorType {
+    OPERATE_ERROR(100,"操作失败"),
+    Data_Validation_ERROR(300,"数据校验失败"),
     USER_INPUT_ERROR(400,"参数异常"),
     SYSTEM_ERROR (500,"系统异常"),
     ACCOUNT_ERROR(403,"账户异常"),
