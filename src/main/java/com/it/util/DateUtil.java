@@ -2,27 +2,38 @@ package com.it.util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 
 import static ch.qos.logback.core.util.OptionHelper.isEmpty;
 
 /**
- * @author huhao
  * @create 2023-03-21
  */
 public class DateUtil {
 
     /**
+     * @description: 字符串格式转日期格式 format为null 默认是年月日格式
+     * @date: 2023/6/26 15:07
+     * @param: dateString 日期字符串,format 日期格式
+     * @return: java.lang.String
+     **/
+    public static Date forDate(String dateString, String format) throws ParseException {
+        if (isEmpty(format)) {
+            format = "yyyy-MM-dd";
+        }
+        SimpleDateFormat dateFormat = new SimpleDateFormat(format);
+        Date date = dateFormat.parse(dateString);
+        return date;
+    }
+
+    /**
      * @description: 日期格式转字符串格式 format为null 默认是年月日格式
-     * @author: 胡浩
      * @date: 2023/6/26 15:07
      * @param: date 日期,format 日期格式
      * @return: java.lang.String
      **/
-    public static String format(Date date, String format) {
+    public static String forString(Date date, String format) {
         if (date == null) {
             return "";
         } else {
@@ -36,7 +47,6 @@ public class DateUtil {
 
     /**
      * @description: 计算两个日期相差天数
-     * @author: 胡浩
      * @date: 2023/6/26 15:09
      * @param: bdate - smdate
      * @return: int
@@ -62,7 +72,6 @@ public class DateUtil {
 
     /**
      * @description: 向前后推几天日期
-     * @author: 胡浩
      * @date: 2023/6/26 15:11
      * @param: qh: 1前，2后,num 天数,format 日期格式
      * @return: java.util.List<java.lang.String>

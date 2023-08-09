@@ -31,7 +31,6 @@ public class ProcessInquiryServiceImpl implements ProcessInquiryService {
     @Override
     public SelectProcessListDto selectProcessList(ProcessInquiryVo processInquiryVo) {
         String url = "http://172.16.23.26:10069/physical/searchByLabel";
-
         //header参数
         HttpHeaders headers = new HttpHeaders();
         headers.add("authorization", processInquiryVo.getAuthorization());

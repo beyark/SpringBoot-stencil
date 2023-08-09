@@ -77,7 +77,7 @@ public class GatewayVo implements Serializable {
     @NoArgsConstructor
     public static class Data{
         //边的id
-        public Integer id;
+        public String id;
         //边的概率值
         public String probabilityValue;
     }

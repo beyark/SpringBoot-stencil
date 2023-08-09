@@ -5,8 +5,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * @program: SpringBoot-stencil
- * @description:
- * @author: 胡浩
+ * @description: 定时器
  * @create: 2023-06-26 14:21
  **/
 @Component

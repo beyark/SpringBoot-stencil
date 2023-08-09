@@ -8,19 +8,20 @@
             <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="activityName" column="activity_name" jdbcType="VARCHAR"/>
             <result property="executeNum" column="execute_num" jdbcType="INTEGER"/>
-            <result property="disposeTimeAvg" column="dispose_time_avg" jdbcType="TIMESTAMP"/>
-            <result property="awaitTimeMax" column="await_time_max" jdbcType="TIMESTAMP"/>
-            <result property="awaitTimeMin" column="await_time_min" jdbcType="TIMESTAMP"/>
-            <result property="awaitTimeAvg" column="await_time_avg" jdbcType="TIMESTAMP"/>
+            <result property="disposeTimeAvg" column="dispose_time_avg" jdbcType="VARCHAR"/>
+            <result property="awaitTimeMax" column="await_time_max" jdbcType="VARCHAR"/>
+            <result property="awaitTimeMin" column="await_time_min" jdbcType="VARCHAR"/>
+            <result property="awaitTimeAvg" column="await_time_avg" jdbcType="VARCHAR"/>
             <result property="awaitTimeMaxNum" column="await_time_max-num" jdbcType="INTEGER"/>
             <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
             <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
+            <result property="userName" column="user_name" jdbcType="VARCHAR"/>
     </resultMap>
 
     <sql id="Base_Column_List">
         id,activity_name,execute_num,
         dispose_time_avg,await_time_max,await_time_min,
         await_time_avg,await_time_max-num,create_time,
-        history_process_id
+        history_process_id,user_name
     </sql>
 </mapper>

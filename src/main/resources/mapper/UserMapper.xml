@@ -5,16 +5,14 @@
 <mapper namespace="com.it.mapper.UserMapper">
 
     <resultMap id="BaseResultMap" type="com.it.domain.User">
-            <id property="userId" column="user_id" jdbcType="BIGINT"/>
+            <id property="id" column="id" jdbcType="INTEGER"/>
             <result property="userName" column="user_name" jdbcType="VARCHAR"/>
-            <result property="userPwd" column="user_pwd" jdbcType="VARCHAR"/>
-            <result property="stuate" column="stuate" jdbcType="CHAR"/>
-            <result property="tel" column="tel" jdbcType="INTEGER"/>
-        <result property="isDeleted" column="is_deleted" jdbcType="INTEGER"/>
+            <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
+            <result property="startEmulationTime" column="start_emulation_time" jdbcType="TIMESTAMP"/>
+            <result property="endEmulationTime" column="end_emulation_time" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        user_id,user_name,user_pwd,
-        stuate,tel,is_deleted
+        id,user_name,history_process_id,start_emulation_time,end_emulation_time
     </sql>
 </mapper>

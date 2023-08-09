@@ -24,47 +24,47 @@ public class EmulationTimeOutcome implements Serializable {
     /**
      * 处理时间最大值
      */
-    private Date disposeTimeMax;
+    private String disposeTimeMax;
 
     /**
      * 处理时间最小值
      */
-    private Date disposeTimeMin;
+    private String disposeTimeMin;
 
     /**
      * 处理时间平均值
      */
-    private Date disposeTimeAvg;
+    private String disposeTimeAvg;
 
     /**
      * 等待时间最大值
      */
-    private Date awaitTimeMax;
+    private String awaitTimeMax;
 
     /**
      * 等待时间最小值
      */
-    private Date awaitTimeMin;
+    private String awaitTimeMin;
 
     /**
      * 等待时间平均值
      */
-    private Date awaitTimeAvg;
+    private String awaitTimeAvg;
 
     /**
      * 完成时间最大值
      */
-    private Date finishTimeMax;
+    private String finishTimeMax;
 
     /**
      * 完成时间最小值
      */
-    private Date finishTimeMin;
+    private String finishTimeMin;
 
     /**
      * 完成时间平均值
      */
-    private Date finishTimeAvg;
+    private String finishTimeAvg;
 
     /**
      * 仿真次数
@@ -80,6 +80,11 @@ public class EmulationTimeOutcome implements Serializable {
      * 历史流程编号
      */
     private Integer historyProcessId;
+
+    /**
+     * 用户名称
+     */
+    private String userName;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
