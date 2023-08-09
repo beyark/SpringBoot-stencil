@@ -1,7 +1,6 @@
 package com.it.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
-import com.it.domain.ActivityActivity;
+import com.it.dto.MyResponseDto;
 
 /**
  * @program: SpringBoot-stencil
@@ -11,5 +10,27 @@ import com.it.domain.ActivityActivity;
 public interface EmulationOutcomeService{
 
     //生成XML文件
-    void generateXML(Integer historyProcessId,String startEmulationTime);
+    String generateXML(Integer historyProcessId,String startEmulationTime);
+
+    //加载XML文件
+    boolean efficacyXML(String url);
+
+    //获取引擎执行中返回的状态信息
+    MyResponseDto fetchEngineState();
+
+    //第一次开启仿真
+    boolean startSimulation(Integer historyProcessId,String startEmulationTime,String endEmulationTime);
+
+    //持续仿真流程
+    MyResponseDto sustainEmulation(Integer velocityValue);
+
+    //中止仿真
+    void discontinueEmulation();
+
+    //重启仿真引擎
+    Boolean rebootEmulationEngine();
+
+    //获取引擎状态
+    String getEngineState();
+
 }

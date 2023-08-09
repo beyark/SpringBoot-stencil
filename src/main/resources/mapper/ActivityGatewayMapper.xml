@@ -10,7 +10,7 @@
             <result property="gatewayId" column="gateway_id" jdbcType="VARCHAR"/>
             <result property="value" column="value" jdbcType="VARCHAR"/>
             <result property="probabilityValue" column="probability_value" jdbcType="VARCHAR"/>
-            <result property="sideId" column="side_id" jdbcType="INTEGER"/>
+            <result property="sideId" column="side_id" jdbcType="VARCHAR"/>
             <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
     </resultMap>
 

@@ -1,12 +1,8 @@
 package com.it.service;
 
-
-//import com.it.dto.ResultDto;
 import com.it.dto.ResultDto2;
 import com.it.dto.SelectProcessListDto;
 import com.it.vo.ProcessInquiryVo;
-
-import java.util.List;
 
 public interface ProcessInquiryService {
 

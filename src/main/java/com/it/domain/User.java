@@ -1,81 +1,43 @@
 package com.it.domain;
 
-import com.baomidou.mybatisplus.annotation.*;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import java.io.Serializable;
+import java.util.Date;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import java.io.Serializable;
-
 /**
  * 
- * @TableName user
+ * @TableName sys_user
  */
-@TableName(value ="user")
+@TableName(value ="sys_user")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-//@ApiModel("用户实体类")
 public class User implements Serializable {
-    /**
-     * 用户编号123
-     */
-    @TableId(type = IdType.AUTO)
-//    @ApiModelProperty("用户编号")
-    @NotNull(message = "不能为空")
-    @Min(value = 0, message = "值只能为0-10")
-    @Max(value = 10, message = "值只能为0-10")
-    private Long userId;
-
-    /**
-     * 用户名
-     */
 
     private String userName;
 
-    /**
-     * 密码
-     */
-    private String userPwd;
+    private int historyProcessId;
 
     /**
-     * 状态
+     * 开始仿真时间
      */
-    private String stuate;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone = "GMT+8")
+    private Date startEmulationTime;
 
     /**
-     * 电话
+     * 结束仿真时间
      */
-    private Integer tel;
-
-    /**
-     * 逻辑删除
-     */
-    @TableLogic
-    private Integer isDeleted;
+    @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone = "GMT+8")
+    private Date endEmulationTime;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getSimpleName());
-        sb.append(" [");
-        sb.append("Hash = ").append(hashCode());
-        sb.append(", userId=").append(userId);
-        sb.append(", userName=").append(userName);
-        sb.append(", userPwd=").append(userPwd);
-        sb.append(", stuate=").append(stuate);
-        sb.append(", tel=").append(tel);
-        sb.append(", isDeleted=").append(isDeleted);
-        sb.append(", serialVersionUID=").append(serialVersionUID);
-        sb.append("]");
-        return sb.toString();
-    }
 }

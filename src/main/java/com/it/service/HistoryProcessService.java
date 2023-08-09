@@ -10,7 +10,6 @@ import org.apache.ibatis.annotations.Options;
 import java.util.Map;
 
 /**
-* @author 胡浩
 * @description 针对表【sys_history_process】的数据库操作Service
 * @createDate 2023-07-20 16:11:40
 */

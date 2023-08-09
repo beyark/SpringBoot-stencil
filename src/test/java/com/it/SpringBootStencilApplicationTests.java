@@ -12,6 +12,10 @@ import org.springframework.test.context.event.annotation.BeforeTestClass;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @SpringBootTest
@@ -19,7 +23,7 @@ class SpringBootStencilApplicationTests {
 
     @BeforeEach
     public void before() {
-        System.out.println(1);
+
     }
 
     @Test
@@ -39,21 +43,50 @@ class SpringBootStencilApplicationTests {
     }
 
     @Test
-    void test1(){
-//        long timestamp = 1690423200000l;
-        long timestamp = 1690423200l;
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String dateStr = sdf.format(new Date(timestamp));
-        System.out.println(dateStr);
+    void test1() {
+        String str = "23456";
+        if (str.length() > 0) {
+            str = "1" + str.substring(1);
+        }
+        System.out.println(str);
+
+        char firstChar = str.charAt(0);
+        System.out.println(firstChar);
     }
 
     @Test
-    void test2(){
-        String numberStr = "0.9";
-        double number = Double.parseDouble(numberStr);
-        DecimalFormat df = new DecimalFormat("0%");
-        String percentage = df.format(number);
-        System.out.println(percentage);
+    void test2() {
+        String dateString = "1970-01-01 12:00:00";
+        String pattern = "yyyy-MM-dd HH:mm:ss";
+
+        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        try {
+            Date date = sdf.parse(dateString);
+            long timestamp = date.getTime() / 1000; // 将毫秒转换为秒
+            System.out.println("Timestamp: " + timestamp);
+        } catch (ParseException e) {
+            System.out.println("Error occurred while parsing the date: " + e.getMessage());
+        }
     }
 
+    @Test
+    void test3() {
+        int num1 = 2;
+        int num2 = 4;
+        int executionFrequency = 5;
+        String result = "";
+
+        for (int i = 0; i < executionFrequency; i++) {
+            if (i < num1) {
+                result += "0,";
+            } else if (i < num2) {
+                result += "1,";
+            } else {
+                result += "0,";
+            }
+        }
+        // 移除最后一个逗号
+        result = result.substring(0, result.length() - 1);
+        System.out.println(result);
+    }
 }

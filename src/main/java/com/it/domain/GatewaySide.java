@@ -25,7 +25,7 @@ public class GatewaySide implements Serializable {
     /**
      * 网关边编号
      */
-    private Integer sideId;
+    private String sideId;
 
     /**
      * 概率值

@@ -6,7 +6,6 @@ import org.springframework.context.ApplicationContextAware;
 
 /**
  * @Description 获取JavaBean工具类
- * @Author 胡浩
  * @Date 2023-03-21
  * @Version
  */

@@ -48,7 +48,7 @@ public class ActivityGateway implements Serializable {
     /**
      * 边编号
      */
-    private Integer sideId;
+    private String sideId;
 
     /**
      * 历史流程编号

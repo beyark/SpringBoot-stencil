@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.beans.Transient;
 import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
@@ -16,7 +18,7 @@ import lombok.Data;
 @Data
 public class ActivityOutcome implements Serializable {
     /**
-     * 
+     * 编号
      */
     @TableId(type = IdType.AUTO)
     private Integer id;
@@ -34,22 +36,22 @@ public class ActivityOutcome implements Serializable {
     /**
      * 平均处理时间
      */
-    private Date disposeTimeAvg;
+    private String disposeTimeAvg;
 
     /**
      * 等待时间最大值
      */
-    private Date awaitTimeMax;
+    private String awaitTimeMax;
 
     /**
      * 等待时间最小值
      */
-    private Date awaitTimeMin;
+    private String awaitTimeMin;
 
     /**
      * 等待时间平均值
      */
-    private Date awaitTimeAvg;
+    private String awaitTimeAvg;
 
     /**
      * 最大等待数量
@@ -65,6 +67,14 @@ public class ActivityOutcome implements Serializable {
      * 历史流程编号
      */
     private Integer historyProcessId;
+
+    /**
+     * 用户名称
+     */
+    private String userName;
+
+    @TableField(exist = false)
+    private String userNum;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

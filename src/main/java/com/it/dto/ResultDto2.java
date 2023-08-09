@@ -1,16 +1,13 @@
 package com.it.dto;
 
-import io.swagger.models.auth.In;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.util.List;
 
 /**
  * @program: SpringBoot-stencil
- * @description: 新的Result
- * @author: 胡浩
+ * @description: 流程接收
  * @create: 2023-07-22 10:14
  **/
 @Data
@@ -113,7 +110,7 @@ public class ResultDto2 {
         private String modifier;
         private String zerenzhuti_name;
         private String front_end_id;
-        private Integer id;
+        private String id;
         private String label;
         private String zerenzhuti_id;
         private String huodongmingcheng;

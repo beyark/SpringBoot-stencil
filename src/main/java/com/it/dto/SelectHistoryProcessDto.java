@@ -13,7 +13,6 @@ import java.util.List;
 /**
  * @program: SpringBoot-stencil
  * @description: 查询历史流程返回的DTO
- * @author: 胡浩
  * @create: 2023-07-22 14:02
  **/
 @Data

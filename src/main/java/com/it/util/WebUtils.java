@@ -8,14 +8,12 @@
 ///**
 // * @program: wanshu
 // * @description: 公共工具类
-// * @author: 胡浩
 // * @create: 2023-07-12 22:09
 // **/
 //public class WebUtils {
 //
 //    /**
 //     * @description: 密码加盐
-//     * @author: 胡浩
 //     * @date: 2023/7/12 22:10
 //     * @param: password
 //     * @return: 加密后的password
@@ -26,7 +24,6 @@
 //
 //    /**
 //     * @description: 获取当前登录用户
-//     * @author: 胡浩
 //     * @date: 2023/7/16 23:00
 //     * @return: java.lang.String
 //     **/

@@ -4,7 +4,6 @@ import com.it.domain.EmulationTimeOutcome;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**
-* @author 胡浩
 * @description 针对表【sys_emulation_time_outcome】的数据库操作Mapper
 * @createDate 2023-07-23 15:17:37
 * @Entity com.it.domain.EmulationTimeOutcome

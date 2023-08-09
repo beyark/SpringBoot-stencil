@@ -1,17 +1,32 @@
 package com.it.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.it.domain.*;
+import com.it.dto.MyResponseDto;
+import com.it.dto.ResponseDto;
 import com.it.service.*;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.Resource;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -21,7 +36,8 @@ import java.util.*;
  **/
 @Service
 public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
-
+    @Resource
+    private RestTemplate restTemplate;
     @Resource
     private ActivityService activityService;
     @Resource
@@ -35,10 +51,11 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
 
     //生成XML文件
     @Override
-    public void generateXML(Integer historyProcessId, String startEmulationTime) {
+    public String generateXML(Integer historyProcessId, String startEmulationTime) {
         // 定义文件名和路径
-        String fileName = "model.xml";
-        String filePath = "./" + fileName;
+        String fileName = historyProcessId + "-" + System.currentTimeMillis() + ".xml";
+        String filePath = "C:\\test\\" + fileName;
+//        String filePath = "/LCFZ/java/xml/" + fileName;
 
         // 创建 PrintWriter 对象，用于输出 XML 内容到文件
         PrintWriter writer = null;
@@ -101,17 +118,19 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     // 秒(随机值)
                     writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
                     // 设置活动事件输入随机值
-                    String results = "";
+                    String result = "";
                     for (int i = 0; i < executionFrequency; i++) {
-                        if (activity.getRandom1() > activity.getRandom2()) {
-                            results += "1,";
+                        if (i < activity.getRandom1()) {
+                            result += "0;";
+                        } else if (i < activity.getRandom2()) {
+                            result += "1;";
                         } else {
-                            results += "0,";
+                            result += "0;";
                         }
                     }
-                    // 移除最后一个逗号
-                    results = results.substring(0, results.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + results + "\"/>");
+                    // 移除最后一个分号
+                    result = result.substring(0, result.length() - 1);
+                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
                 }
                 if (activity.getTimeType() == 1 && activity.getEventType() == 0) {
                     // 分(固定值)
@@ -122,17 +141,19 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     // 分(随机值)
                     writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
                     // 设置活动事件输入随机值
-                    String resultm = "";
+                    String result = "";
                     for (int i = 0; i < executionFrequency; i++) {
-                        if (activity.getRandom1() > activity.getRandom2()) {
-                            resultm += "1,";
+                        if (i < activity.getRandom1()) {
+                            result += "0;";
+                        } else if (i < activity.getRandom2()) {
+                            result += "1;";
                         } else {
-                            resultm += "0,";
+                            result += "0;";
                         }
                     }
                     // 移除最后一个逗号
-                    resultm = resultm.substring(0, resultm.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + resultm + "\"/>");
+                    result = result.substring(0, result.length() - 1);
+                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
                 }
                 if (activity.getTimeType() == 2 && activity.getEventType() == 0) {
                     // 时(固定值)
@@ -143,17 +164,19 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     // 时(随机值)
                     writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
                     // 设置活动事件输入随机值
-                    String resulth = "";
+                    String result = "";
                     for (int i = 0; i < executionFrequency; i++) {
-                        if (activity.getRandom1() > activity.getRandom2()) {
-                            resulth += "1,";
+                        if (i < activity.getRandom1()) {
+                            result += "0;";
+                        } else if (i < activity.getRandom2()) {
+                            result += "1;";
                         } else {
-                            resulth += "0,";
+                            result += "0;";
                         }
                     }
                     // 移除最后一个逗号
-                    resulth = resulth.substring(0, resulth.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + resulth + "\"/>");
+                    result = result.substring(0, result.length() - 1);
+                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
                 }
                 if (activity.getTimeType() == 3 && activity.getEventType() == 0) {
                     // 天(固定值)
@@ -164,17 +187,19 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     // 天(随机值)
                     writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
                     // 设置活动事件输入随机值
-                    String resultd = "";
+                    String result = "";
                     for (int i = 0; i < executionFrequency; i++) {
-                        if (activity.getRandom1() > activity.getRandom2()) {
-                            resultd += "1,";
+                        if (i < activity.getRandom1()) {
+                            result += "0;";
+                        } else if (i < activity.getRandom2()) {
+                            result += "1;";
                         } else {
-                            resultd += "0,";
+                            result += "0;";
                         }
                     }
                     // 移除最后一个逗号
-                    resultd = resultd.substring(0, resultd.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + resultd + "\"/>");
+                    result = result.substring(0, result.length() - 1);
+                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
                 }
                 writer.println("    </ModelElementSource>");
 
@@ -311,16 +336,8 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     // 拿上一个节点(上一个节点为网关的情况)
                     if (activityGatewayList2 != null) {
                         for (ActivityGateway activityGateway : activityGatewayList2) {
-                            int num = 0;
-                            for (String key : keys) {
-                                if (("2" + activityGateway.getGatewayId()).equals(key)) {
-                                    writer.println("      <ModelElementConnection Element=\"" + map.get(key) + "\" Type=\"In\"/>");
-                                    num++;
-                                }
-                            }
-                            if (num == 0) {
-                                writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
-                            }
+                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
+
                         }
                     }
                     // 活动处理时间、等待处理时间
@@ -342,8 +359,17 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                 // 设置中间活动的上和下的节点
                 List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
                         .eq("activity_two", activity.getId()));
-                for (ActivityActivity activityActivity : activityActivityList) {
-                    writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
+                List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
+                        .eq("activity_id", activity.getId()));
+                if (activityActivityList != null && activityActivityList.size() > 0) {
+                    for (ActivityActivity activityActivity : activityActivityList) {
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
+                    }
+                }
+                if (activityGatewayList != null && activityGatewayList.size() > 0) {
+                    for (ActivityGateway activityGateway : activityGatewayList) {
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
+                    }
                 }
                 // 活动处理时间、等待处理时间
                 extracted(writer, activity);
@@ -381,7 +407,9 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
 
                 } else {
                     // 否则 为 网关指向活动，对应输出（多输出）
-                    writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"Out\"/>");
+                    GatewaySide gatewaySide = gatewaySideService.getBaseMapper().selectOne(new QueryWrapper<GatewaySide>().eq("history_process_id", historyProcessId)
+                            .eq("side_id", activityGateway.getSideId()));
+                    writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Rate=\"" + (int) (Double.parseDouble(gatewaySide.getProbabilityValue()) * 10) + "\"  Type=\"Out\"/>");
                 }
             }
             writer.println("    </ModelElementDecide>");
@@ -425,7 +453,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                 DecimalFormat df = new DecimalFormat("0%");
                 String percentage = df.format(number);
                 writer.println("    <ModelElementEdge id=\"" + "11" + activityGateway.getId() + "\">");
-                writer.println("      <ModelElementName>Rate 1 (" + percentage + ")</ModelElementName>");
+                writer.println("      <ModelElementName>Rate " + (int) (Double.parseDouble(gatewaySide.getProbabilityValue()) * 10) + " (" + percentage + ")</ModelElementName>");
                 writer.println("      <ModelElementConnection Element1=\"" + "2" + gateway.getGatewayId() + "\" Element2=\"" + "1" + activity.getActivityId() + "\" Type=\"Edge\"/>");
                 writer.println("    </ModelElementEdge>");
             } else {
@@ -451,7 +479,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1160\" y=\"170\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Number\">ProcessTime_avg()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">ProcessTime_avg()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体平均等待时间
         writer.println("    <ModelElementAnimationText id=\"2\">");
@@ -459,7 +487,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1310\" y=\"175\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Number\">WaitingTime_avg()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">WaitingTime_avg()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体平均完成时间
         writer.println("    <ModelElementAnimationText id=\"3\">");
@@ -467,7 +495,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1460\" y=\"175\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">ProcessTime_avg()+WaitingTime_avg()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_avg()+WaitingTime_avg()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体最大处理时间
         writer.println("    <ModelElementAnimationText id=\"4\">");
@@ -475,7 +503,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1160\" y=\"280\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">ProcessTime_max()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_max()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体最大等待时间
         writer.println("    <ModelElementAnimationText id=\"5\">");
@@ -483,7 +511,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1305\" y=\"280\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">WaitingTime_max()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体最大完成时间
         writer.println("    <ModelElementAnimationText id=\"6\">");
@@ -491,7 +519,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1460\" y=\"275\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">WaitingTime_max()+ProcessTime_max()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max()+ProcessTime_max()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体最小处理时间
         writer.println("    <ModelElementAnimationText id=\"7\">");
@@ -499,7 +527,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1165\" y=\"385\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">ProcessTime_min()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_min()</ModelElementAnimationMode>");
         writer.println("      <ModelElementBackgroundColor>255,255,255</ModelElementBackgroundColor>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体最小等待时间
@@ -508,7 +536,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1305\" y=\"385\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">WaitingTime_min()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 仿真整体最小完成时间
         writer.println("    <ModelElementAnimationText id=\"9\">");
@@ -516,7 +544,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1455\" y=\"390\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">WaitingTime_min()+ProcessTime_min()</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min()+ProcessTime_min()</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
 
         //将开始仿真时间转时间搓
@@ -527,7 +555,8 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         } catch (ParseException e) {
             throw new RuntimeException(e);
         }
-        long timestamp = date.getTime();
+        long timestamp = date.getTime() / 1000; // 将毫秒转换为秒
+
         // 当前仿真时间
         writer.println("    <ModelElementAnimationText id=\"10\">");
         writer.println("      <ModelElementName>当前仿真时间</ModelElementName>");
@@ -549,6 +578,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         // 关闭 PrintWriter 对象
         writer.close();
         System.out.println("XML 文件已生成：" + filePath);
+        return filePath;
     }
 
     private static void extracted1(PrintWriter writer, Activity activity) {
@@ -558,7 +588,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"76\" x=\"431\" y=\"623\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Number\">ProcessTime_avg(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">ProcessTime_avg(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 设置该活动平均等待时间
         writer.println("    <ModelElementAnimationText id=\"" + "4" + activity.getActivityId() + "\">");
@@ -582,7 +612,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"83\" x=\"415\" y=\"610\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">WaitingTime_max(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 设置该活动最小等待时间
         writer.println("    <ModelElementAnimationText id=\"" + "7" + activity.getActivityId() + "\">");
@@ -590,7 +620,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"83\" x=\"415\" y=\"680\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">WaitingTime_min(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 设置该活动最大等待数量
         writer.println("    <ModelElementAnimationText id=\"" + "8" + activity.getActivityId() + "\">");
@@ -642,5 +672,176 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             //天
             writer.println("      <ModelElementDistribution Status=\"WaitTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (awaitTime * 60 * 60 * 24) + ")</ModelElementDistribution>");
         }
+    }
+
+    //加载XML文件
+    @Override
+    public boolean efficacyXML(String url) {
+        //创建MultiValueMap对象，并添加文件参数
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("model", new FileSystemResource(new File(url)));
+
+        //创建HttpHeaders对象，并设置请求头信息
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        //创建HttpEntity对象，将bodyMap和headers设置到请求实体中
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        //定义url地址，发送post请求
+        String serverUrl = "http://10.230.3.11:80/upload";
+        ResponseEntity<String> response = restTemplate.exchange(serverUrl, HttpMethod.POST, requestEntity, String.class);
+
+        //获取返回值
+        String vales = response.getBody();
+        if ("WebServer.Upload.Success,model.Check.Ok".equals(vales)) {
+            return true;
+        }
+        return true;
+    }
+
+    //获取引擎执行中返回的状态信息(返回值当中出现了乱码,所以用 OkHttpClient 远程调用)
+    @Override
+    public MyResponseDto fetchEngineState() {
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder()
+                .url("http://10.230.3.11:80/animation?command=status")
+                .addHeader("Accept-Charset", "UTF-8")
+                .build();
+        MyResponseDto myResponseDto = null;
+        try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
+            myResponseDto = new ObjectMapper().readValue(responseBody, MyResponseDto.class);
+            //源value数据
+            Map<String, Object> oldmap = myResponseDto.getValue();
+            //新value数据
+            Map<String, Object> newMap = new HashMap<>();
+            //获取所有key
+            Set<String> keys = oldmap.keySet();
+            //存储活动编号
+            List<String> list = new ArrayList();
+            for (String key : keys) {
+                //将key为1-10的数据，保留
+                int num = Integer.parseInt(key);
+                if (num >= 1 && num <= 10) {
+                    newMap.put(key, oldmap.get(key));
+                }else {
+                    //获取到活动编号
+                    String activityId = "1" + key.substring(1);
+                    //如果list集合当中不存在这个活动编号,就存储记录
+                    if (!list.contains(activityId)) {
+                        list.add(activityId);
+                    }
+                }
+            }
+            for (String str : list) {
+                ResponseDto responseDto = new ResponseDto();
+                for (String key : keys) {
+                    //获取到活动编号
+                    String activityId = "1" + key.substring(1);
+                    //如果集合当中该条活动编号 与 该循环中获取到的活动编号一致，说明是一个活动，给设置具体参数
+                    if (activityId.equals(str)) {
+                        //第一个字符
+                        char at = key.charAt(0);
+                        //char 转 int
+                        switch (Character.getNumericValue(at)) {
+                            case 3:
+                                responseDto.setDisposeTimeAvg((String) oldmap.get(key));
+                                break;
+                            case 4:
+                                responseDto.setAwaitTimeAvg((String) oldmap.get(key));
+                                break;
+                            case 5:
+                                responseDto.setUserNum((String) oldmap.get(key));
+                                break;
+                            case 6:
+                                responseDto.setAwaitTimeMax((String) oldmap.get(key));
+                                break;
+                            case 7:
+                                responseDto.setAwaitTimeMin((String) oldmap.get(key));
+                                break;
+                            case 8:
+                                responseDto.setAwaitTimeMaxNum((String) oldmap.get(key));
+                                break;
+                            case 9:
+                                responseDto.setExecuteNum((String) oldmap.get(key));
+                                break;
+                        }
+                    }
+
+                }
+                Activity activity = activityService.getBaseMapper().selectById(str.substring(1));
+                responseDto.setActivityName(activity.getName());
+                newMap.put(str, responseDto);
+            }
+            myResponseDto.setValue(newMap);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return myResponseDto;
+    }
+
+    //第一次开启仿真
+    @Override
+    public boolean startSimulation(Integer historyProcessId, String startEmulationTime, String endEmulationTime) {
+        //1、重启仿真引擎
+        Boolean bool = this.rebootEmulationEngine();
+        if (bool) {
+            //2、生成XML文件 返回
+            String url = this.generateXML(historyProcessId, startEmulationTime);
+            //3、加载XML文件
+            boolean flag = this.efficacyXML(url);
+            System.out.println(flag + "加载XML成功");
+            //4、开始仿真(仿真之前判断XML是否加载成功，引擎是否正常)
+            String state = this.getEngineState();
+            System.out.println("引擎状态为：" + state);
+            if (flag && "Model editor".equals(state)) {
+                this.sustainEmulation(50);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    //持续仿真
+    @Override
+    public MyResponseDto sustainEmulation(Integer velocityValue) {
+        String url = "http://10.230.3.11:80/animation?command=step&interupt=" + velocityValue;
+        restTemplate.getForObject(url, String.class);
+        MyResponseDto myResponseDto = this.fetchEngineState();
+        return myResponseDto;
+    }
+
+    //中止仿真
+    @Override
+    public void discontinueEmulation() {
+        String url = "http://10.230.3.11:80/animation?command=quit";
+        try {
+            restTemplate.getForObject(url, String.class);
+        } catch (Exception e) {
+//            e.printStackTrace();
+        }
+    }
+
+    //重启仿真引擎
+    @Override
+    public Boolean rebootEmulationEngine() {
+        String url = "http://10.230.3.11:8080/open-pse-file";
+        String flag = restTemplate.getForObject(url, String.class);
+        if (flag != null && "start".equals(flag)) {
+            //重启成功
+            return true;
+        }
+        return false;
+    }
+
+    //获取引擎状态
+    @Override
+    public String getEngineState() {
+        String url = "http://10.230.3.11:80/status";
+        String body = restTemplate.getForObject(url, String.class);
+        JSONObject jsonObject = JSONObject.parseObject(body);
+        String mode = (String) jsonObject.get("mode");
+        return mode;
     }
 }
