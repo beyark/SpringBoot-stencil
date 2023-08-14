@@ -24,7 +24,7 @@ public class UserController {
 
     @ApiOperation("第一次开启仿真/新增用户到队列")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "UserName",value = "用户名称",readOnly = true,paramType = "path"),
+            @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path"),
             @ApiImplicitParam(name = "historyProcessId",value = "历史记录编号",readOnly = true,paramType = "path"),
             @ApiImplicitParam(name = "startEmulationTime",value = "开始仿真时间",readOnly = true,paramType = "path"),
             @ApiImplicitParam(name = "endEmulationTime",value = "结束仿真时间",readOnly = true,paramType = "path")
@@ -43,8 +43,8 @@ public class UserController {
             @ApiImplicitParam(name = "UserName",value = "用户名称",readOnly = true,paramType = "path"),
     })
     @PostMapping("/remove")
-    public AjaxResponse removeUser(@RequestParam("UserName") String UserName) {
-        Boolean flag = userService.removeUser(UserName);
+    public AjaxResponse removeUser(@RequestParam("userName") String userName) {
+        Boolean flag = userService.removeUser(userName);
         return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.DATABASE_OP_ERROR),"移除用户失败");
     }
 
@@ -62,11 +62,20 @@ public class UserController {
 
     @ApiOperation("查询用户队列排名信息")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "UserName",value = "用户名称",readOnly = true,paramType = "path"),
+            @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path"),
     })
     @PostMapping("/getUserQueue")
-    public AjaxResponse getUserQueue(@RequestParam("UserName") String UserName) {
-        UserQueueMessageDto userQueue = userService.getUserQueue(UserName);
-        return AjaxResponse.success(userQueue);
+    public AjaxResponse getUserQueue(@RequestParam("userName") String userName) {
+        UserQueueMessageDto userQueue = userService.getUserQueue(userName);
+        return userQueue != null ? AjaxResponse.success(userQueue) : AjaxResponse.error(new CustomError(CustomErrorType.OTHER_ERROR),"该用户没有在队列中");
+    }
+    @ApiOperation("判断该用户是否仿真结束")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path"),
+    })
+    @PostMapping("/userFZ")
+    public AjaxResponse userFZ(@RequestParam("userName") String userName) {
+        boolean flag = userService.userFZ(userName);
+        return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
     }
 }

@@ -12,8 +12,12 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MyResponseDto {
+    //当前仿真时间
     private String time;
+    //进度
+    private String progress;
     private Map<String, Object> movingImages;
+    //仿真结果数据
     private Map<String, Object> value;
     private Map<String, Object> staticImages;
     private String logs;

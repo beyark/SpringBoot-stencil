@@ -21,4 +21,13 @@ public interface UserService extends IService<User> {
 
     //查询用户队列排名信息
     UserQueueMessageDto getUserQueue(String userName);
+
+    //获取到当前队列执行用户
+    User getNextUser();
+
+    //判断该用户是否仿真结束
+    boolean userFZ(String userName);
+
+    //根据用户名称获取用户信息
+    User getUserByUserName(String userName);
 }

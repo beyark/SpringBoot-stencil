@@ -132,7 +132,6 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
 
             //5、存历史流程
             HistoryProcess historyProcess = historyProcessService.getBaseMapper().selectById(historyProcessId);
-
             System.out.println("用户名称:" + saveHistoricalProcessesVO.getUserName());
             if (historyProcess == null) {
                 historyProcessDomain = new HistoryProcess();
@@ -198,7 +197,7 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
                     activityGateway.setGatewayId(sourceNodeId);
                     activityGateway.setActivityId(targetNodeId);
                     activityGateway.setValue(1);
-                    activityGateway.setSideId(edge.getGraphProperties().getId());
+                    activityGateway.setSideId(edge.getId());
                     if (historyProcess == null) {
                         activityGateway.setHistoryProcessId(historyProcessDomain.getHistoryProcessId());
                     } else {
@@ -211,7 +210,7 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
                         ActivityGateway activityGateway = new ActivityGateway();
                         activityGateway.setGatewayId(targetNodeId);
                         activityGateway.setActivityId(sourceNodeId);
-                        activityGateway.setSideId(edge.getGraphProperties().getId());
+                        activityGateway.setSideId(edge.getId());
                         if (historyProcess == null) {
                             activityGateway.setHistoryProcessId(historyProcessDomain.getHistoryProcessId());
                         } else {
