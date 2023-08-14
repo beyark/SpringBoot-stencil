@@ -89,4 +89,42 @@ class SpringBootStencilApplicationTests {
         result = result.substring(0, result.length() - 1);
         System.out.println(result);
     }
+
+    @Test
+    void test4() {
+        String startTime = "2023-07-27 10:00:00";
+        String endTime = "2023-07-27 12:00:00";
+        String currentTime = "2023-07-27 11:00:00";
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        try {
+            Date startDate = sdf.parse(startTime);
+            Date endDate = sdf.parse(endTime);
+            Date currentDate = sdf.parse(currentTime);
+
+            long totalTime = endDate.getTime() - startDate.getTime();
+            long elapsedTime = currentDate.getTime() - startDate.getTime();
+
+            double progress = (double) elapsedTime / totalTime;
+
+            int progressBarWidth = 20; // 进度条的宽度（单位：字符）
+            int filledWidth = (int) (progress * progressBarWidth);
+
+            StringBuilder progressBar = new StringBuilder();
+            progressBar.append("[");
+            for (int i = 0; i < progressBarWidth; i++) {
+                if (i < filledWidth) {
+                    progressBar.append("#");
+                } else {
+                    progressBar.append(" ");
+                }
+            }
+            progressBar.append("]");
+
+            System.out.println("进度条：" + progressBar.toString());
+            System.out.println("进度：" + (int) (progress * 100) + "%");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

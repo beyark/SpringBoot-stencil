@@ -1,7 +1,9 @@
 package com.it.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.it.domain.*;
 import com.it.dto.MyResponseDto;
@@ -10,10 +12,12 @@ import com.it.service.*;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.springframework.beans.BeanUtils;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -48,537 +52,551 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     private ActivityGatewayService activityGatewayService;
     @Resource
     private GatewaySideService gatewaySideService;
+    @Resource
+    private UserService userService;
+    @Resource
+    private EmulationOutcomeService emulationOutcomeService;
+    @Resource
+    private EmulationTimeOutcomeService emulationTimeOutcomeService;
+    @Resource
+    private ActivityOutcomeService activityOutcomeService;
 
     //生成XML文件
     @Override
     public String generateXML(Integer historyProcessId, String startEmulationTime) {
-        // 定义文件名和路径
-        String fileName = historyProcessId + "-" + System.currentTimeMillis() + ".xml";
-        String filePath = "C:\\test\\" + fileName;
+        try {
+            // 定义文件名和路径
+            String fileName = historyProcessId + "-" + System.currentTimeMillis() + ".xml";
+            String filePath = "C:\\test\\" + fileName;
 //        String filePath = "/LCFZ/java/xml/" + fileName;
 
-        // 创建 PrintWriter 对象，用于输出 XML 内容到文件
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter(new FileWriter(filePath));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+            // 创建 PrintWriter 对象，用于输出 XML 内容到文件
+            PrintWriter writer = null;
+            try {
+                writer = new PrintWriter(new FileWriter(filePath));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
-        // 输出 XML 头信息和根元素
-        writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
-        writer.println("<!DOCTYPE Model SYSTEM \"https://a-herzog.github.io/Warteschlangensimulator/Simulator.dtd\">");
-        writer.println("<Model xmlns=\"https://a-herzog.github.io\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"https://a-herzog.github.io https://a-herzog.github.io/Warteschlangensimulator/Simulator.xsd\">");
+            // 输出 XML 头信息和根元素
+            writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
+            writer.println("<!DOCTYPE Model SYSTEM \"https://a-herzog.github.io/Warteschlangensimulator/Simulator.dtd\">");
+            writer.println("<Model xmlns=\"https://a-herzog.github.io\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"https://a-herzog.github.io https://a-herzog.github.io/Warteschlangensimulator/Simulator.xsd\">");
 
-        // 输出模型版本、作者、客户数、热身阶段和终止时间等元素
-        writer.println("  <ModelVersion>5.3.0</ModelVersion>");
-        writer.println("  <ModelAuthor>msewi</ModelAuthor>");
-        writer.println("  <ModelClients Active=\"1\">10000000</ModelClients>");
-        writer.println("  <ModelWarmUpPhase>0.01</ModelWarmUpPhase>");
-        writer.println("  <ModelTerminationTime Active=\"0\">10:00:00:00</ModelTerminationTime>");
-        writer.println("  <ModelElements>");
+            // 输出模型版本、作者、客户数、热身阶段和终止时间等元素
+            writer.println("  <ModelVersion>5.3.0</ModelVersion>");
+            writer.println("  <ModelAuthor>msewi</ModelAuthor>");
+            writer.println("  <ModelClients Active=\"1\">10000000</ModelClients>");
+            writer.println("  <ModelWarmUpPhase>0.01</ModelWarmUpPhase>");
+            writer.println("  <ModelTerminationTime Active=\"0\">10:00:00:00</ModelTerminationTime>");
+            writer.println("  <ModelElements>");
 
-        Map<String, String> map = new HashMap<>(); // 用于存储分发器
-        //编写活动XML
-        List<Activity> activityList = activityService.getBaseMapper().selectList(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId));
-        for (Activity activity : activityList) {
-            if (activity.getType() == 1) {
-                // activity.getType() == 1 说明为开始活动
-                // 活动id
-                writer.println("    <ModelElementSource id=\"" + "1" + activity.getActivityId() + "\">");
-                // 活动名称
-                writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
-                // 活动的坐标
-                writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
-                // 活动执行人
-                writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
-                // 设置开始活动的下一个节点
-                List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
-                        .eq("activity_one", activity.getId()));
-                List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
-                        .eq("value", 0)
-                        .eq("activity_id", activity.getId()));
-                if (activityActivityList != null && activityActivityList.size() == 1) {
-                    writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivityList.get(0).getId() + "\" Type=\"Out\"/>");
-                } else {
-                    if (activityGatewayList != null && activityGatewayList.size() > 0) {
-                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityGatewayList.get(0).getId() + "\" Type=\"Out\"/>");
-                    }
-                }
-                // 活动处理时间、等待处理时间
-                extracted(writer, activity);
-                // 设置活动执行频率
-                Integer executionFrequency = activity.getExecutionFrequency(); //executionFrequency: 执行频率
-                if (activity.getTimeType() == 0 && activity.getEventType() == 0) {
-                    // 秒(固定值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入国定值
-                    writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
-                } else if (activity.getTimeType() == 0 && activity.getEventType() == 1) {
-                    // 秒(随机值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入随机值
-                    String result = "";
-                    for (int i = 0; i < executionFrequency; i++) {
-                        if (i < activity.getRandom1()) {
-                            result += "0;";
-                        } else if (i < activity.getRandom2()) {
-                            result += "1;";
-                        } else {
-                            result += "0;";
-                        }
-                    }
-                    // 移除最后一个分号
-                    result = result.substring(0, result.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
-                }
-                if (activity.getTimeType() == 1 && activity.getEventType() == 0) {
-                    // 分(固定值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入国定值
-                    writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
-                } else if (activity.getTimeType() == 1 && activity.getEventType() == 1) {
-                    // 分(随机值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入随机值
-                    String result = "";
-                    for (int i = 0; i < executionFrequency; i++) {
-                        if (i < activity.getRandom1()) {
-                            result += "0;";
-                        } else if (i < activity.getRandom2()) {
-                            result += "1;";
-                        } else {
-                            result += "0;";
-                        }
-                    }
-                    // 移除最后一个逗号
-                    result = result.substring(0, result.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
-                }
-                if (activity.getTimeType() == 2 && activity.getEventType() == 0) {
-                    // 时(固定值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入国定值
-                    writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
-                } else if (activity.getTimeType() == 2 && activity.getEventType() == 1) {
-                    // 时(随机值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入随机值
-                    String result = "";
-                    for (int i = 0; i < executionFrequency; i++) {
-                        if (i < activity.getRandom1()) {
-                            result += "0;";
-                        } else if (i < activity.getRandom2()) {
-                            result += "1;";
-                        } else {
-                            result += "0;";
-                        }
-                    }
-                    // 移除最后一个逗号
-                    result = result.substring(0, result.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
-                }
-                if (activity.getTimeType() == 3 && activity.getEventType() == 0) {
-                    // 天(固定值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入国定值
-                    writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
-                } else if (activity.getTimeType() == 3 && activity.getEventType() == 1) {
-                    // 天(随机值)
-                    writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
-                    // 设置活动事件输入随机值
-                    String result = "";
-                    for (int i = 0; i < executionFrequency; i++) {
-                        if (i < activity.getRandom1()) {
-                            result += "0;";
-                        } else if (i < activity.getRandom2()) {
-                            result += "1;";
-                        } else {
-                            result += "0;";
-                        }
-                    }
-                    // 移除最后一个逗号
-                    result = result.substring(0, result.length() - 1);
-                    writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
-                }
-                writer.println("    </ModelElementSource>");
-
-                // 设置该活动的TextXML
-                extracted1(writer, activity);
-            } else if (activity.getType() == 0) {
-                // activity.getType() == 0 说明为中间活动
-                List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
-                        .eq("activity_id", activity.getId())
-                        .eq("value", 0));
-                List<ActivityActivity> activityActivities = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
-                        .eq("activity_one", activity.getId()));
-                List<ActivityActivity> activityActivities2 = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
-                        .eq("activity_two", activity.getId()));
-                List<ActivityGateway> activityGatewayList2 = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
-                        .eq("activity_id", activity.getId())
-                        .eq("value", 1));
-                List<String> numList = new ArrayList<>();
-//                if (activityGatewayList.size() > 0 && activityActivities.size() > 0) {
-                if ((activityGatewayList.size() + activityActivities.size()) > 1) {
-                    // 产生了分发器，存入到分发器集合
-                    writer.println("    <ModelElementEdge id=\"" + "11" + activity.getActivityId() + "\">");
-                    writer.println("      <ModelElementConnection Element1=\"" + "1" + activity.getActivityId() + "\" Element2=\"" + "10" + activity.getActivityId() + "\" Type=\"Edge\"/>");
-                    writer.println("    </ModelElementEdge>");
-
-                    // 说明 这个活动对应多个输出节点，新增一个分发器
-                    writer.println("    <ModelElementDuplicate id=\"" + "10" + activity.getActivityId() + "\">");
-                    writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"150\" y=\"170\"/>");
-                    writer.println("      <ModelElementConnection Element=\"" + "11" + activity.getActivityId() + "\" Type=\"In\"/>");
-                    // 拿下一个节点(下一个节点为活动的情况)
-                    if (activityActivities != null) {
-                        for (int i = 0; i < activityActivities.size(); i++) {
-                            map.put("1" + activityActivities.get(i).getActivityTwo(), ("11" + numList.size()) + activity.getActivityId());
-                            writer.println("      <ModelElementConnection Element=\"" + ("11" + numList.size()) + activity.getActivityId() + "\" Type=\"Out\"/>");
-                            numList.add(activityActivities.get(i).getActivityTwo());
-                        }
-                    }
-                    // 拿下一个节点(下一个节点为网关的情况)
-                    if (activityGatewayList != null) {
-                        for (ActivityGateway activityGateway : activityGatewayList) {
-                            map.put("2" + activityGateway.getGatewayId(), ("11" + numList.size()) + activity.getActivityId());
-                            writer.println("      <ModelElementConnection Element=\"" + ("11" + numList.size()) + activity.getActivityId() + "\" Type=\"Out\"/>");
-                            numList.add(activityGateway.getGatewayId());
-                        }
-                    }
-                    writer.println("    </ModelElementDuplicate>");
-
-                    for (int i = 0; i < numList.size(); i++) {
-                        Activity activity1 = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
-                                .eq("id", numList.get(i)));
-                        Gateway gateway = gatewayService.getBaseMapper().selectOne(new QueryWrapper<Gateway>().eq("history_process_id", historyProcessId)
-                                .eq("id", numList.get(i)));
-                        writer.println("    <ModelElementEdge id=\"" + ("11" + i) + activity.getActivityId() + "\">");
-                        if (activity1 != null) {
-                            writer.println("      <ModelElementConnection Element1=\"" + "10" + activity.getActivityId() + "\" Element2=\"" + "1" + activity1.getActivityId() + "\" Type=\"Edge\"/>");
-                        }
-                        if (gateway != null) {
-                            writer.println("      <ModelElementConnection Element1=\"" + "10" + activity.getActivityId() + "\" Element2=\"" + "2" + gateway.getGatewayId() + "\" Type=\"Edge\"/>");
-                        }
-                        writer.println("    </ModelElementEdge>");
-                    }
-
+            Map<String, String> map = new HashMap<>(); // 用于存储分发器
+            //编写活动XML
+            List<Activity> activityList = activityService.getBaseMapper().selectList(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId));
+            for (Activity activity : activityList) {
+                if (activity.getType() == 1) {
+                    // activity.getType() == 1 说明为开始活动
                     // 活动id
-                    writer.println("    <ModelElementProcessStation id=\"" + "1" + activity.getActivityId() + "\">");
+                    writer.println("    <ModelElementSource id=\"" + "1" + activity.getActivityId() + "\">");
                     // 活动名称
                     writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
                     // 活动的坐标
                     writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
-                    // 类型
-                    writer.println("      <ModelElementPriority ClientType=\"Clients\">w</ModelElementPriority>");
-                    // 优先度
-                    writer.println("      <ModelElementOperatorsPriority>1</ModelElementOperatorsPriority>");
                     // 活动执行人
                     writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
-                    //设置输出位 分发器
-                    writer.println("      <ModelElementConnection Element=\"" + "11" + activity.getActivityId() + "\" Type=\"Out\"/>");
-                    // 拿上一个节点(上一个节点为活动的情况)
-                    if (activityActivities2 != null) {
-                        for (ActivityActivity activityActivity : activityActivities2) {
-                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
-                        }
-                    }
-                    // 拿上一个节点(上一个节点为网关的情况)
-                    if (activityGatewayList2 != null) {
-                        for (ActivityGateway activityGateway : activityGatewayList2) {
-                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
+                    // 设置开始活动的下一个节点
+                    List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
+                            .eq("activity_one", activity.getId()));
+                    List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
+                            .eq("value", 0)
+                            .eq("activity_id", activity.getId()));
+                    if (activityActivityList != null && activityActivityList.size() == 1) {
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivityList.get(0).getId() + "\" Type=\"Out\"/>");
+                    } else {
+                        if (activityGatewayList != null && activityGatewayList.size() > 0) {
+                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGatewayList.get(0).getId() + "\" Type=\"Out\"/>");
                         }
                     }
                     // 活动处理时间、等待处理时间
                     extracted(writer, activity);
-                    writer.println("    </ModelElementProcessStation>");
-                } else {
-                    // 活动id
-                    writer.println("    <ModelElementProcessStation id=\"" + "1" + activity.getActivityId() + "\">");
-                    // 活动名称
-                    writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
-                    // 活动的坐标
-                    writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
-                    // 类型
-                    writer.println("      <ModelElementPriority ClientType=\"Clients\">w</ModelElementPriority>");
-                    // 优先度
-                    writer.println("      <ModelElementOperatorsPriority>1</ModelElementOperatorsPriority>");
-                    // 活动执行人
-                    writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
-                    // 设置中间活动的上和下的节点
-                    // 拿下一个节点(下一个节点为活动的情况)
-                    if (activityActivities != null) {
-                        for (ActivityActivity activityActivity : activityActivities) {
-                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"Out\"/>");
-                        }
-                    }
-                    // 拿下一个节点(下一个节点为网关的情况)
-                    if (activityGatewayList != null) {
-                        for (ActivityGateway activityGateway : activityGatewayList) {
-                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"Out\"/>");
-                        }
-                    }
-                    // 拿上一个节点(上一个节点为活动的情况)
-                    Set<String> keys = map.keySet();
-                    if (activityActivities2 != null) {
-                        for (ActivityActivity activityActivity : activityActivities2) {
-                            int num = 0;
-                            for (String key : keys) {
-                                if (("1" + activityActivity.getActivityTwo()).equals(key)) {
-                                    writer.println("      <ModelElementConnection Element=\"" + map.get(key) + "\" Type=\"In\"/>");
-                                    num++;
-                                }
+                    // 设置活动执行频率
+                    Integer executionFrequency = activity.getExecutionFrequency(); //executionFrequency: 执行频率
+                    if (activity.getTimeType() == 0 && activity.getEventType() == 0) {
+                        // 秒(固定值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入国定值
+                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                    } else if (activity.getTimeType() == 0 && activity.getEventType() == 1) {
+                        // 秒(随机值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入随机值
+                        String result = "";
+                        for (int i = 0; i < executionFrequency; i++) {
+                            if (i < activity.getRandom1()) {
+                                result += "0;";
+                            } else if (i < activity.getRandom2()) {
+                                result += "1;";
+                            } else {
+                                result += "0;";
                             }
-                            if (num == 0) {
+                        }
+                        // 移除最后一个分号
+                        result = result.substring(0, result.length() - 1);
+                        writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
+                    }
+                    if (activity.getTimeType() == 1 && activity.getEventType() == 0) {
+                        // 分(固定值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入国定值
+                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                    } else if (activity.getTimeType() == 1 && activity.getEventType() == 1) {
+                        // 分(随机值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入随机值
+                        String result = "";
+                        for (int i = 0; i < executionFrequency; i++) {
+                            if (i < activity.getRandom1()) {
+                                result += "0;";
+                            } else if (i < activity.getRandom2()) {
+                                result += "1;";
+                            } else {
+                                result += "0;";
+                            }
+                        }
+                        // 移除最后一个逗号
+                        result = result.substring(0, result.length() - 1);
+                        writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
+                    }
+                    if (activity.getTimeType() == 2 && activity.getEventType() == 0) {
+                        // 时(固定值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入国定值
+                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                    } else if (activity.getTimeType() == 2 && activity.getEventType() == 1) {
+                        // 时(随机值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入随机值
+                        String result = "";
+                        for (int i = 0; i < executionFrequency; i++) {
+                            if (i < activity.getRandom1()) {
+                                result += "0;";
+                            } else if (i < activity.getRandom2()) {
+                                result += "1;";
+                            } else {
+                                result += "0;";
+                            }
+                        }
+                        // 移除最后一个逗号
+                        result = result.substring(0, result.length() - 1);
+                        writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
+                    }
+                    if (activity.getTimeType() == 3 && activity.getEventType() == 0) {
+                        // 天(固定值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入国定值
+                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                    } else if (activity.getTimeType() == 3 && activity.getEventType() == 1) {
+                        // 天(随机值)
+                        writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
+                        // 设置活动事件输入随机值
+                        String result = "";
+                        for (int i = 0; i < executionFrequency; i++) {
+                            if (i < activity.getRandom1()) {
+                                result += "0;";
+                            } else if (i < activity.getRandom2()) {
+                                result += "1;";
+                            } else {
+                                result += "0;";
+                            }
+                        }
+                        // 移除最后一个逗号
+                        result = result.substring(0, result.length() - 1);
+                        writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
+                    }
+                    writer.println("    </ModelElementSource>");
+
+                    // 设置该活动的TextXML
+                    extracted1(writer, activity);
+                } else if (activity.getType() == 0) {
+                    // activity.getType() == 0 说明为中间活动
+                    List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
+                            .eq("activity_id", activity.getId())
+                            .eq("value", 0));
+                    List<ActivityActivity> activityActivities = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
+                            .eq("activity_one", activity.getId()));
+                    List<ActivityActivity> activityActivities2 = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
+                            .eq("activity_two", activity.getId()));
+                    List<ActivityGateway> activityGatewayList2 = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
+                            .eq("activity_id", activity.getId())
+                            .eq("value", 1));
+                    List<String> numList = new ArrayList<>();
+//                if (activityGatewayList.size() > 0 && activityActivities.size() > 0) {
+                    if ((activityGatewayList.size() + activityActivities.size()) > 1) {
+                        // 产生了分发器，存入到分发器集合
+                        writer.println("    <ModelElementEdge id=\"" + "11" + activity.getActivityId() + "\">");
+                        writer.println("      <ModelElementConnection Element1=\"" + "1" + activity.getActivityId() + "\" Element2=\"" + "10" + activity.getActivityId() + "\" Type=\"Edge\"/>");
+                        writer.println("    </ModelElementEdge>");
+
+                        // 说明 这个活动对应多个输出节点，新增一个分发器
+                        writer.println("    <ModelElementDuplicate id=\"" + "10" + activity.getActivityId() + "\">");
+                        writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"150\" y=\"170\"/>");
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activity.getActivityId() + "\" Type=\"In\"/>");
+                        // 拿下一个节点(下一个节点为活动的情况)
+                        if (activityActivities != null) {
+                            for (int i = 0; i < activityActivities.size(); i++) {
+                                map.put("1" + activityActivities.get(i).getActivityTwo(), ("11" + numList.size()) + activity.getActivityId());
+                                writer.println("      <ModelElementConnection Element=\"" + ("11" + numList.size()) + activity.getActivityId() + "\" Type=\"Out\"/>");
+                                numList.add(activityActivities.get(i).getActivityTwo());
+                            }
+                        }
+                        // 拿下一个节点(下一个节点为网关的情况)
+                        if (activityGatewayList != null) {
+                            for (ActivityGateway activityGateway : activityGatewayList) {
+                                map.put("2" + activityGateway.getGatewayId(), ("11" + numList.size()) + activity.getActivityId());
+                                writer.println("      <ModelElementConnection Element=\"" + ("11" + numList.size()) + activity.getActivityId() + "\" Type=\"Out\"/>");
+                                numList.add(activityGateway.getGatewayId());
+                            }
+                        }
+                        writer.println("    </ModelElementDuplicate>");
+
+                        for (int i = 0; i < numList.size(); i++) {
+                            Activity activity1 = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
+                                    .eq("id", numList.get(i)));
+                            Gateway gateway = gatewayService.getBaseMapper().selectOne(new QueryWrapper<Gateway>().eq("history_process_id", historyProcessId)
+                                    .eq("id", numList.get(i)));
+                            writer.println("    <ModelElementEdge id=\"" + ("11" + i) + activity.getActivityId() + "\">");
+                            if (activity1 != null) {
+                                writer.println("      <ModelElementConnection Element1=\"" + "10" + activity.getActivityId() + "\" Element2=\"" + "1" + activity1.getActivityId() + "\" Type=\"Edge\"/>");
+                            }
+                            if (gateway != null) {
+                                writer.println("      <ModelElementConnection Element1=\"" + "10" + activity.getActivityId() + "\" Element2=\"" + "2" + gateway.getGatewayId() + "\" Type=\"Edge\"/>");
+                            }
+                            writer.println("    </ModelElementEdge>");
+                        }
+
+                        // 活动id
+                        writer.println("    <ModelElementProcessStation id=\"" + "1" + activity.getActivityId() + "\">");
+                        // 活动名称
+                        writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
+                        // 活动的坐标
+                        writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
+                        // 类型
+                        writer.println("      <ModelElementPriority ClientType=\"Clients\">w</ModelElementPriority>");
+                        // 优先度
+                        writer.println("      <ModelElementOperatorsPriority>1</ModelElementOperatorsPriority>");
+                        // 活动执行人
+                        writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
+                        //设置输出位 分发器
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activity.getActivityId() + "\" Type=\"Out\"/>");
+                        // 拿上一个节点(上一个节点为活动的情况)
+                        if (activityActivities2 != null) {
+                            for (ActivityActivity activityActivity : activityActivities2) {
                                 writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
                             }
                         }
-                    }
-                    // 拿上一个节点(上一个节点为网关的情况)
-                    if (activityGatewayList2 != null) {
-                        for (ActivityGateway activityGateway : activityGatewayList2) {
-                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
+                        // 拿上一个节点(上一个节点为网关的情况)
+                        if (activityGatewayList2 != null) {
+                            for (ActivityGateway activityGateway : activityGatewayList2) {
+                                writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
+                            }
+                        }
+                        // 活动处理时间、等待处理时间
+                        extracted(writer, activity);
+                        writer.println("    </ModelElementProcessStation>");
+                    } else {
+                        // 活动id
+                        writer.println("    <ModelElementProcessStation id=\"" + "1" + activity.getActivityId() + "\">");
+                        // 活动名称
+                        writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
+                        // 活动的坐标
+                        writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
+                        // 类型
+                        writer.println("      <ModelElementPriority ClientType=\"Clients\">w</ModelElementPriority>");
+                        // 优先度
+                        writer.println("      <ModelElementOperatorsPriority>1</ModelElementOperatorsPriority>");
+                        // 活动执行人
+                        writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
+                        // 设置中间活动的上和下的节点
+                        // 拿下一个节点(下一个节点为活动的情况)
+                        if (activityActivities != null) {
+                            for (ActivityActivity activityActivity : activityActivities) {
+                                writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"Out\"/>");
+                            }
+                        }
+                        // 拿下一个节点(下一个节点为网关的情况)
+                        if (activityGatewayList != null) {
+                            for (ActivityGateway activityGateway : activityGatewayList) {
+                                writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"Out\"/>");
+                            }
+                        }
+                        // 拿上一个节点(上一个节点为活动的情况)
+                        Set<String> keys = map.keySet();
+                        if (activityActivities2 != null) {
+                            for (ActivityActivity activityActivity : activityActivities2) {
+                                int num = 0;
+                                for (String key : keys) {
+                                    if (("1" + activityActivity.getActivityTwo()).equals(key)) {
+                                        writer.println("      <ModelElementConnection Element=\"" + map.get(key) + "\" Type=\"In\"/>");
+                                        num++;
+                                    }
+                                }
+                                if (num == 0) {
+                                    writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
+                                }
+                            }
+                        }
+                        // 拿上一个节点(上一个节点为网关的情况)
+                        if (activityGatewayList2 != null) {
+                            for (ActivityGateway activityGateway : activityGatewayList2) {
+                                writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
 
+                            }
+                        }
+                        // 活动处理时间、等待处理时间
+                        extracted(writer, activity);
+                        writer.println("    </ModelElementProcessStation>");
+                    }
+                    // 设置该活动的TextXML
+                    extracted1(writer, activity);
+                } else if (activity.getType() == 2) {
+                    // activity.getType() == 2 说明为结束活动
+                    // 活动id
+                    writer.println("    <ModelElementDispose id=\"" + "1" + activity.getActivityId() + "\">");
+                    // 活动名称
+                    writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
+                    // 活动的坐标
+                    writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
+                    // 活动执行人
+                    writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
+                    // 设置中间活动的上和下的节点
+                    List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
+                            .eq("activity_two", activity.getId()));
+                    List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
+                            .eq("activity_id", activity.getId()));
+                    if (activityActivityList != null && activityActivityList.size() > 0) {
+                        for (ActivityActivity activityActivity : activityActivityList) {
+                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
+                        }
+                    }
+                    if (activityGatewayList != null && activityGatewayList.size() > 0) {
+                        for (ActivityGateway activityGateway : activityGatewayList) {
+                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
                         }
                     }
                     // 活动处理时间、等待处理时间
                     extracted(writer, activity);
-                    writer.println("    </ModelElementProcessStation>");
+                    writer.println("    </ModelElementDispose>");
+
+                    // 设置该活动的TextXML
+                    extracted1(writer, activity);
                 }
-                // 设置该活动的TextXML
-                extracted1(writer, activity);
-            } else if (activity.getType() == 2) {
-                // activity.getType() == 2 说明为结束活动
-                // 活动id
-                writer.println("    <ModelElementDispose id=\"" + "1" + activity.getActivityId() + "\">");
-                // 活动名称
-                writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
-                // 活动的坐标
-                writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
-                // 活动执行人
-                writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
-                // 设置中间活动的上和下的节点
-                List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
-                        .eq("activity_two", activity.getId()));
+            }
+
+            // 编写网关XML
+            List<Gateway> gatewayList = gatewayService.getBaseMapper().selectList(new QueryWrapper<Gateway>().eq("history_process_id", historyProcessId));
+            for (Gateway gateway : gatewayList) {
+                writer.println("    <ModelElementDecide id=\"" + "2" + gateway.getGatewayId() + "\">");
+                writer.println("      <ModelElementName>" + gateway.getName() + "</ModelElementName>");
+                writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"425\" y=\"215\"/>");
+                writer.println("      <ModelElementDecideMode>Random</ModelElementDecideMode>");
                 List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
-                        .eq("activity_id", activity.getId()));
-                if (activityActivityList != null && activityActivityList.size() > 0) {
-                    for (ActivityActivity activityActivity : activityActivityList) {
-                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivity.getId() + "\" Type=\"In\"/>");
-                    }
-                }
-                if (activityGatewayList != null && activityGatewayList.size() > 0) {
-                    for (ActivityGateway activityGateway : activityGatewayList) {
-                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
-                    }
-                }
-                // 活动处理时间、等待处理时间
-                extracted(writer, activity);
-                writer.println("    </ModelElementDispose>");
-
-                // 设置该活动的TextXML
-                extracted1(writer, activity);
-            }
-        }
-
-        // 编写网关XML
-        List<Gateway> gatewayList = gatewayService.getBaseMapper().selectList(new QueryWrapper<Gateway>().eq("history_process_id", historyProcessId));
-        for (Gateway gateway : gatewayList) {
-            writer.println("    <ModelElementDecide id=\"" + "2" + gateway.getGatewayId() + "\">");
-            writer.println("      <ModelElementName>" + gateway.getName() + "</ModelElementName>");
-            writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"425\" y=\"215\"/>");
-            writer.println("      <ModelElementDecideMode>Random</ModelElementDecideMode>");
-            List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
-                    .eq("gateway_id", gateway.getId()));
-            for (ActivityGateway activityGateway : activityGatewayList) {
-                if (activityGateway.getValue() == 0) {
-                    // 等于0 为 活动指向网关，对应输入（一般单输入）
-                    Activity activity = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
-                            .eq("id", activityGateway.getActivityId()));
-                    int num = 0;
-                    for (String key : map.keySet()) {
-                        if (("2" + activityGateway.getGatewayId()).equals(key)) {
-                            writer.println("      <ModelElementConnection Element=\"" + map.get(key) + "\" Type=\"In\"/>");
-                            num++;
+                        .eq("gateway_id", gateway.getId()));
+                for (ActivityGateway activityGateway : activityGatewayList) {
+                    if (activityGateway.getValue() == 0) {
+                        // 等于0 为 活动指向网关，对应输入（一般单输入）
+                        Activity activity = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
+                                .eq("id", activityGateway.getActivityId()));
+                        int num = 0;
+                        for (String key : map.keySet()) {
+                            if (("2" + activityGateway.getGatewayId()).equals(key)) {
+                                writer.println("      <ModelElementConnection Element=\"" + map.get(key) + "\" Type=\"In\"/>");
+                                num++;
+                            }
                         }
-                    }
-                    if (num == 0) {
-                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
-                    }
+                        if (num == 0) {
+                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Type=\"In\"/>");
+                        }
 
-                } else {
-                    // 否则 为 网关指向活动，对应输出（多输出）
-                    GatewaySide gatewaySide = gatewaySideService.getBaseMapper().selectOne(new QueryWrapper<GatewaySide>().eq("history_process_id", historyProcessId)
-                            .eq("side_id", activityGateway.getSideId()));
-                    writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Rate=\"" + (int) (Double.parseDouble(gatewaySide.getProbabilityValue()) * 10) + "\"  Type=\"Out\"/>");
+                    } else {
+                        // 否则 为 网关指向活动，对应输出（多输出）
+                        GatewaySide gatewaySide = gatewaySideService.getBaseMapper().selectOne(new QueryWrapper<GatewaySide>().eq("history_process_id", historyProcessId)
+                                .eq("side_id", activityGateway.getSideId()));
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityGateway.getId() + "\" Rate=\"" + (int) (Double.parseDouble(gatewaySide.getProbabilityValue()) * 10) + "\"  Type=\"Out\"/>");
+                    }
                 }
+                writer.println("    </ModelElementDecide>");
             }
-            writer.println("    </ModelElementDecide>");
-        }
 
-        // 编写边XML
-        List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId));
-        List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId));
-        // 活动与活动的边
-        for (ActivityActivity activityActivity : activityActivityList) {
-            Activity activityOne = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
-                    .eq("id", activityActivity.getActivityOne()));
-            Activity activityTwo = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
-                    .eq("id", activityActivity.getActivityTwo()));
-            Set<String> mapKeys = map.keySet();
-            int num = 0;
-            for (String mapKey : mapKeys) {
-                if (("1" + activityActivity.getActivityTwo()).equals(mapKey)) {
-                    num = 1;
-                }
-            }
-            if (num == 0) {
-                writer.println("    <ModelElementEdge id=\"" + "11" + activityActivity.getId() + "\">");
-                writer.println("      <ModelElementConnection Element1=\"" + "1" + activityOne.getActivityId() + "\" Element2=\"" + "1" + activityTwo.getActivityId() + "\" Type=\"Edge\"/>");
-                writer.println("    </ModelElementEdge>");
-            }
-        }
-        // 活动与网关的边
-        for (ActivityGateway activityGateway : activityGatewayList) {
-            // 获取到该边相关的节点信息（下面设置边的时候，设定的是节点ID指向节点ID）
-            Activity activity = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
-                    .eq("id", activityGateway.getActivityId()));
-            Gateway gateway = gatewayService.getBaseMapper().selectOne(new QueryWrapper<Gateway>().eq("history_process_id", historyProcessId)
-                    .eq("id", activityGateway.getGatewayId()));
-            if (activityGateway.getValue() == 1) {
-                // value == 1 说明是网关指向活动，需要设置概率值
-                GatewaySide gatewaySide = gatewaySideService.getBaseMapper().selectOne(new QueryWrapper<GatewaySide>().eq("history_process_id", historyProcessId)
-                        .eq("side_id", activityGateway.getSideId())); // 获取概率值
-                // 将数据库里面的概率值转换为百分比（如：0.9==>90%）
-                double number = Double.parseDouble(gatewaySide.getProbabilityValue());
-                DecimalFormat df = new DecimalFormat("0%");
-                String percentage = df.format(number);
-                writer.println("    <ModelElementEdge id=\"" + "11" + activityGateway.getId() + "\">");
-                writer.println("      <ModelElementName>Rate " + (int) (Double.parseDouble(gatewaySide.getProbabilityValue()) * 10) + " (" + percentage + ")</ModelElementName>");
-                writer.println("      <ModelElementConnection Element1=\"" + "2" + gateway.getGatewayId() + "\" Element2=\"" + "1" + activity.getActivityId() + "\" Type=\"Edge\"/>");
-                writer.println("    </ModelElementEdge>");
-            } else {
+            // 编写边XML
+            List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId));
+            List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId));
+            // 活动与活动的边
+            for (ActivityActivity activityActivity : activityActivityList) {
+                Activity activityOne = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
+                        .eq("id", activityActivity.getActivityOne()));
+                Activity activityTwo = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
+                        .eq("id", activityActivity.getActivityTwo()));
                 Set<String> mapKeys = map.keySet();
                 int num = 0;
                 for (String mapKey : mapKeys) {
-                    if (("2" + activityGateway.getGatewayId()).equals(mapKey)) {
+                    if (("1" + activityActivity.getActivityTwo()).equals(mapKey)) {
                         num = 1;
                     }
                 }
                 if (num == 0) {
-                    // 否则 说明是活动指向网关，不需要考虑概率值
-                    writer.println("    <ModelElementEdge id=\"" + "11" + activityGateway.getId() + "\">");
-                    writer.println("      <ModelElementConnection Element1=\"" + "1" + activity.getActivityId() + "\" Element2=\"" + "2" + gateway.getGatewayId() + "\" Type=\"Edge\"/>");
+                    writer.println("    <ModelElementEdge id=\"" + "11" + activityActivity.getId() + "\">");
+                    writer.println("      <ModelElementConnection Element1=\"" + "1" + activityOne.getActivityId() + "\" Element2=\"" + "1" + activityTwo.getActivityId() + "\" Type=\"Edge\"/>");
                     writer.println("    </ModelElementEdge>");
                 }
             }
+            // 活动与网关的边
+            for (ActivityGateway activityGateway : activityGatewayList) {
+                // 获取到该边相关的节点信息（下面设置边的时候，设定的是节点ID指向节点ID）
+                Activity activity = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId)
+                        .eq("id", activityGateway.getActivityId()));
+                Gateway gateway = gatewayService.getBaseMapper().selectOne(new QueryWrapper<Gateway>().eq("history_process_id", historyProcessId)
+                        .eq("id", activityGateway.getGatewayId()));
+                if (activityGateway.getValue() == 1) {
+                    // value == 1 说明是网关指向活动，需要设置概率值
+                    GatewaySide gatewaySide = gatewaySideService.getBaseMapper().selectOne(new QueryWrapper<GatewaySide>().eq("history_process_id", historyProcessId)
+                            .eq("side_id", activityGateway.getSideId())); // 获取概率值
+                    // 将数据库里面的概率值转换为百分比（如：0.9==>90%）
+                    double number = Double.parseDouble(gatewaySide.getProbabilityValue());
+                    DecimalFormat df = new DecimalFormat("0%");
+                    String percentage = df.format(number);
+                    writer.println("    <ModelElementEdge id=\"" + "11" + activityGateway.getId() + "\">");
+                    writer.println("      <ModelElementName>Rate " + (int) (Double.parseDouble(gatewaySide.getProbabilityValue()) * 10) + " (" + percentage + ")</ModelElementName>");
+                    writer.println("      <ModelElementConnection Element1=\"" + "2" + gateway.getGatewayId() + "\" Element2=\"" + "1" + activity.getActivityId() + "\" Type=\"Edge\"/>");
+                    writer.println("    </ModelElementEdge>");
+                } else {
+                    Set<String> mapKeys = map.keySet();
+                    int num = 0;
+                    for (String mapKey : mapKeys) {
+                        if (("2" + activityGateway.getGatewayId()).equals(mapKey)) {
+                            num = 1;
+                        }
+                    }
+                    if (num == 0) {
+                        // 否则 说明是活动指向网关，不需要考虑概率值
+                        writer.println("    <ModelElementEdge id=\"" + "11" + activityGateway.getId() + "\">");
+                        writer.println("      <ModelElementConnection Element1=\"" + "1" + activity.getActivityId() + "\" Element2=\"" + "2" + gateway.getGatewayId() + "\" Type=\"Edge\"/>");
+                        writer.println("    </ModelElementEdge>");
+                    }
+                }
+            }
+
+            // 仿真整体平均处理时间
+            writer.println("    <ModelElementAnimationText id=\"1\">");
+            writer.println("      <ModelElementName>仿真整体平均处理时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1160\" y=\"170\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">ProcessTime_avg()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体平均等待时间
+            writer.println("    <ModelElementAnimationText id=\"2\">");
+            writer.println("      <ModelElementName>仿真整体平均等待时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1310\" y=\"175\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">WaitingTime_avg()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体平均完成时间
+            writer.println("    <ModelElementAnimationText id=\"3\">");
+            writer.println("      <ModelElementName>仿真整体平均完成时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1460\" y=\"175\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_avg()+WaitingTime_avg()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体最大处理时间
+            writer.println("    <ModelElementAnimationText id=\"4\">");
+            writer.println("      <ModelElementName>仿真整体最大处理时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1160\" y=\"280\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_max()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体最大等待时间
+            writer.println("    <ModelElementAnimationText id=\"5\">");
+            writer.println("      <ModelElementName>仿真整体最大等待时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1305\" y=\"280\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体最大完成时间
+            writer.println("    <ModelElementAnimationText id=\"6\">");
+            writer.println("      <ModelElementName>仿真整体最大完成时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1460\" y=\"275\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max()+ProcessTime_max()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体最小处理时间
+            writer.println("    <ModelElementAnimationText id=\"7\">");
+            writer.println("      <ModelElementName>仿真整体最小处理时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1165\" y=\"385\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_min()</ModelElementAnimationMode>");
+            writer.println("      <ModelElementBackgroundColor>255,255,255</ModelElementBackgroundColor>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体最小等待时间
+            writer.println("    <ModelElementAnimationText id=\"8\">");
+            writer.println("      <ModelElementName>仿真整体最小等待时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1305\" y=\"385\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+            // 仿真整体最小完成时间
+            writer.println("    <ModelElementAnimationText id=\"9\">");
+            writer.println("      <ModelElementName>仿真整体最小完成时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1455\" y=\"390\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min()+ProcessTime_min()</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+
+            //将开始仿真时间转时间搓
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date = null;
+            try {
+                date = sdf.parse(startEmulationTime);
+            } catch (ParseException e) {
+                throw new RuntimeException(e);
+            }
+            long timestamp = date.getTime() / 1000; // 将毫秒转换为秒
+
+            // 当前仿真时间
+            writer.println("    <ModelElementAnimationText id=\"10\">");
+            writer.println("      <ModelElementName>当前仿真时间</ModelElementName>");
+            writer.println("      <ModelElementSize h=\"30\" w=\"53\" x=\"195\" y=\"420\"/>");
+            writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
+            writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
+            writer.println("      <ModelElementAnimationMode Type=\"Date\">" + timestamp + "</ModelElementAnimationMode>");
+            writer.println("    </ModelElementAnimationText>");
+
+            writer.println("  </ModelElements>");
+            // 编写活动执行人定义XML
+            writer.println("     <Resources SecondaryPriority=\"Random\">");
+            for (Activity activity : activityList) {
+                writer.println("      <Resource Name=\"" + "1" + activity.getActivityId() + "\" Type=\"Number\" Value=\"1\"/>");
+            }
+            writer.println("    </Resources>");
+            // 输出根元素的结尾标记
+            writer.println("</Model>");
+            // 关闭 PrintWriter 对象
+            writer.close();
+            System.out.println("XML文件已生成：" + filePath);
+            return filePath;
+        }catch (Exception e){
+            e.printStackTrace();
+            System.out.println("生成XML失败...");
+            return "error";
         }
-
-        // 仿真整体平均处理时间
-        writer.println("    <ModelElementAnimationText id=\"1\">");
-        writer.println("      <ModelElementName>仿真整体平均处理时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1160\" y=\"170\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">ProcessTime_avg()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体平均等待时间
-        writer.println("    <ModelElementAnimationText id=\"2\">");
-        writer.println("      <ModelElementName>仿真整体平均等待时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1310\" y=\"175\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Digits=\"0\" Type=\"Time value\">WaitingTime_avg()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体平均完成时间
-        writer.println("    <ModelElementAnimationText id=\"3\">");
-        writer.println("      <ModelElementName>仿真整体平均完成时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1460\" y=\"175\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_avg()+WaitingTime_avg()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体最大处理时间
-        writer.println("    <ModelElementAnimationText id=\"4\">");
-        writer.println("      <ModelElementName>仿真整体最大处理时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1160\" y=\"280\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_max()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体最大等待时间
-        writer.println("    <ModelElementAnimationText id=\"5\">");
-        writer.println("      <ModelElementName>仿真整体最大等待时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1305\" y=\"280\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体最大完成时间
-        writer.println("    <ModelElementAnimationText id=\"6\">");
-        writer.println("      <ModelElementName>仿真整体最大完成时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1460\" y=\"275\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_max()+ProcessTime_max()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体最小处理时间
-        writer.println("    <ModelElementAnimationText id=\"7\">");
-        writer.println("      <ModelElementName>仿真整体最小处理时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1165\" y=\"385\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">ProcessTime_min()</ModelElementAnimationMode>");
-        writer.println("      <ModelElementBackgroundColor>255,255,255</ModelElementBackgroundColor>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体最小等待时间
-        writer.println("    <ModelElementAnimationText id=\"8\">");
-        writer.println("      <ModelElementName>仿真整体最小等待时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1305\" y=\"385\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-        // 仿真整体最小完成时间
-        writer.println("    <ModelElementAnimationText id=\"9\">");
-        writer.println("      <ModelElementName>仿真整体最小完成时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"88\" x=\"1455\" y=\"390\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Time value\">WaitingTime_min()+ProcessTime_min()</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-
-        //将开始仿真时间转时间搓
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        Date date = null;
-        try {
-            date = sdf.parse(startEmulationTime);
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
-        }
-        long timestamp = date.getTime() / 1000; // 将毫秒转换为秒
-
-        // 当前仿真时间
-        writer.println("    <ModelElementAnimationText id=\"10\">");
-        writer.println("      <ModelElementName>当前仿真时间</ModelElementName>");
-        writer.println("      <ModelElementSize h=\"30\" w=\"53\" x=\"195\" y=\"420\"/>");
-        writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
-        writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Date\">" + timestamp + "</ModelElementAnimationMode>");
-        writer.println("    </ModelElementAnimationText>");
-
-        writer.println("  </ModelElements>");
-        // 编写活动执行人定义XML
-        writer.println("     <Resources SecondaryPriority=\"Random\">");
-        for (Activity activity : activityList) {
-            writer.println("      <Resource Name=\"" + "1" + activity.getActivityId() + "\" Type=\"Number\" Value=\"1\"/>");
-        }
-        writer.println("    </Resources>");
-        // 输出根元素的结尾标记
-        writer.println("</Model>");
-        // 关闭 PrintWriter 对象
-        writer.close();
-        System.out.println("XML 文件已生成：" + filePath);
-        return filePath;
     }
 
     private static void extracted1(PrintWriter writer, Activity activity) {
@@ -677,27 +695,34 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     //加载XML文件
     @Override
     public boolean efficacyXML(String url) {
-        //创建MultiValueMap对象，并添加文件参数
-        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-        body.add("model", new FileSystemResource(new File(url)));
+        try {
+            //创建MultiValueMap对象，并添加文件参数
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("model", new FileSystemResource(new File(url)));
 
-        //创建HttpHeaders对象，并设置请求头信息
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            //创建HttpHeaders对象，并设置请求头信息
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-        //创建HttpEntity对象，将bodyMap和headers设置到请求实体中
-        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            //创建HttpEntity对象，将bodyMap和headers设置到请求实体中
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        //定义url地址，发送post请求
-        String serverUrl = "http://10.230.3.11:80/upload";
-        ResponseEntity<String> response = restTemplate.exchange(serverUrl, HttpMethod.POST, requestEntity, String.class);
+            //定义url地址，发送post请求
+            String serverUrl = "http://10.230.3.11:80/upload";
+            ResponseEntity<String> response = restTemplate.exchange(serverUrl, HttpMethod.POST, requestEntity, String.class);
 
-        //获取返回值
-        String vales = response.getBody();
-        if ("WebServer.Upload.Success,model.Check.Ok".equals(vales)) {
-            return true;
+            //获取返回值
+            String vales = response.getBody();
+            if ("WebServer.Upload.Success,model.Check.Ok".equals(vales)) {
+                System.out.println("XML加载成功...");
+                return true;
+            }
+            System.out.println("XML文件加载失败("+vales+")");
+            return false;
+        }catch (Exception e){
+            System.out.println("XML文件加载失败...");
+            return false;
         }
-        return true;
     }
 
     //获取引擎执行中返回的状态信息(返回值当中出现了乱码,所以用 OkHttpClient 远程调用)
@@ -783,21 +808,26 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
 
     //第一次开启仿真
     @Override
-    public boolean startSimulation(Integer historyProcessId, String startEmulationTime, String endEmulationTime) {
+    public boolean startSimulation(Integer historyProcessId, String startEmulationTime, String endEmulationTime,String userName) {
         //1、重启仿真引擎
         Boolean bool = this.rebootEmulationEngine();
         if (bool) {
-            //2、生成XML文件 返回
+            System.out.println("重启仿真引擎成功！");
+            //2、生成XML文件 返回文件存储地址
             String url = this.generateXML(historyProcessId, startEmulationTime);
-            //3、加载XML文件
-            boolean flag = this.efficacyXML(url);
-            System.out.println(flag + "加载XML成功");
-            //4、开始仿真(仿真之前判断XML是否加载成功，引擎是否正常)
-            String state = this.getEngineState();
-            System.out.println("引擎状态为：" + state);
-            if (flag && "Model editor".equals(state)) {
-                this.sustainEmulation(50);
-                return true;
+            if (!"error".equals(url)){
+                //3、加载XML文件
+                boolean flag = this.efficacyXML(url);
+                if (flag){
+                    //4、开始仿真(仿真之前判断XML是否加载成功，引擎是否正常)
+                    String state = this.getEngineState();
+                    if ("Model editor".equals(state)) {
+                        this.sustainEmulation(50);
+                        return true;
+                    }
+                }
+            }else {
+                return false;
             }
         }
         return false;
@@ -814,12 +844,78 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
 
     //中止仿真
     @Override
-    public void discontinueEmulation() {
+    @Transactional
+    public boolean discontinueEmulation(String userName,String historyProcessId) {
         String url = "http://10.230.3.11:80/animation?command=quit";
         try {
-            restTemplate.getForObject(url, String.class);
+            boolean user = userService.userFZ(userName);
+            if (user){
+                //1、查询结果表中是否存在该流程的仿真结果了，如果存在先删除在存储一份，保证一个流程对应一个结果。
+                List<ActivityOutcome> activityOutcomeList = activityOutcomeService.getBaseMapper().selectList(new QueryWrapper<ActivityOutcome>().eq("user_name", userName)
+                        .eq("history_process_id", historyProcessId));
+                List<EmulationTimeOutcome> emulationTimeOutcomeList = emulationTimeOutcomeService.getBaseMapper().selectList(new QueryWrapper<EmulationTimeOutcome>().eq("user_name", userName)
+                        .eq("history_process_id", historyProcessId));
+                if (activityOutcomeList.size() > 0 && emulationTimeOutcomeList.size() > 0){
+                    //2、删除活动 & 整体流程结果数据
+                    // 设置批量删除条件(活动)
+                    LambdaQueryWrapper<ActivityOutcome> activityOutcomeLambdaQueryWrapper = Wrappers.lambdaQuery();
+                    activityOutcomeLambdaQueryWrapper.eq(ActivityOutcome::getUserName, userName)
+                            .eq(ActivityOutcome::getHistoryProcessId, historyProcessId);
+                    // 执行删除操作(活动)
+                    activityOutcomeService.getBaseMapper().delete(activityOutcomeLambdaQueryWrapper);
+                    // 设置批量删除条件(整体流程)
+                    LambdaQueryWrapper<EmulationTimeOutcome> emulationTimeOutcomeLambdaQueryWrapper = Wrappers.lambdaQuery();
+                    emulationTimeOutcomeLambdaQueryWrapper.eq(EmulationTimeOutcome::getUserName, userName)
+                            .eq(EmulationTimeOutcome::getHistoryProcessId, historyProcessId);
+                    // 执行删除操作(整体流程)
+                    emulationTimeOutcomeService.getBaseMapper().delete(emulationTimeOutcomeLambdaQueryWrapper);
+                }
+                //获取Value数据
+                MyResponseDto myResponse = emulationOutcomeService.fetchEngineState();
+                System.out.println("Value:"+myResponse.getValue());
+                Map<String, Object> map = myResponse.getValue();
+                //存储整体仿真数据
+                EmulationTimeOutcome emulationTimeOutcome = new EmulationTimeOutcome();
+                emulationTimeOutcome.setDisposeTimeMax((String) map.get("4"));
+                emulationTimeOutcome.setDisposeTimeMin((String) map.get("7"));
+                emulationTimeOutcome.setDisposeTimeAvg((String) map.get("1"));
+                emulationTimeOutcome.setAwaitTimeMax((String) map.get("5"));
+                emulationTimeOutcome.setAwaitTimeMin((String) map.get("8"));
+                emulationTimeOutcome.setAwaitTimeAvg((String) map.get("2"));
+                emulationTimeOutcome.setFinishTimeMax((String) map.get("6"));
+                emulationTimeOutcome.setFinishTimeMin((String) map.get("9"));
+                emulationTimeOutcome.setFinishTimeAvg((String) map.get("3"));
+                emulationTimeOutcome.setCreateTime(new Date());
+                emulationTimeOutcome.setHistoryProcessId(Integer.valueOf(historyProcessId));
+                emulationTimeOutcome.setUserName(userName);
+                emulationTimeOutcomeService.getBaseMapper().insert(emulationTimeOutcome);
+                //存储各个活动数据
+                Set<String> keys = map.keySet();
+                for (String key : keys) {
+                    //将key为1-10的数据，保留
+                    int num = Integer.parseInt(key);
+                    if (num >= 1 && num <= 10) {
+                        continue;
+                    }else {
+                        ResponseDto responseDto = (ResponseDto) map.get(key);
+                        ActivityOutcome activityOutcome = new ActivityOutcome();
+                        BeanUtils.copyProperties(responseDto,activityOutcome);
+                        activityOutcome.setCreateTime(new Date());
+                        activityOutcome.setHistoryProcessId(Integer.valueOf(historyProcessId));
+                        activityOutcome.setUserName(userName);
+                        activityOutcomeService.getBaseMapper().insert(activityOutcome);
+                    }
+                }
+                //终止仿真
+                restTemplate.getForObject(url, String.class);
+                //删除当前仿真用户
+                userService.removeUser(userName);
+                System.out.println(userName + "删除成功(仿真被正常终止)...");
+            }
+            return true;
         } catch (Exception e) {
 //            e.printStackTrace();
+            return true;
         }
     }
 
@@ -838,10 +934,17 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     //获取引擎状态
     @Override
     public String getEngineState() {
-        String url = "http://10.230.3.11:80/status";
-        String body = restTemplate.getForObject(url, String.class);
-        JSONObject jsonObject = JSONObject.parseObject(body);
-        String mode = (String) jsonObject.get("mode");
-        return mode;
+        try {
+            String url = "http://10.230.3.11:80/status";
+            String body = restTemplate.getForObject(url, String.class);
+            JSONObject jsonObject = JSONObject.parseObject(body);
+            String mode = (String) jsonObject.get("mode");
+            System.out.println("引擎状态为：" + mode);
+            return mode;
+        }catch (Exception e){
+            e.printStackTrace();
+            System.out.println("获取引擎状态失败...");
+            return "error";
+        }
     }
 }

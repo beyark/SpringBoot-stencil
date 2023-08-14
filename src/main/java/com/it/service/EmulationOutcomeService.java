@@ -19,13 +19,13 @@ public interface EmulationOutcomeService{
     MyResponseDto fetchEngineState();
 
     //第一次开启仿真
-    boolean startSimulation(Integer historyProcessId,String startEmulationTime,String endEmulationTime);
+    boolean startSimulation(Integer historyProcessId,String startEmulationTime,String endEmulationTime,String userName);
 
     //持续仿真流程
     MyResponseDto sustainEmulation(Integer velocityValue);
 
     //中止仿真
-    void discontinueEmulation();
+    boolean discontinueEmulation(String userName,String historyProcessId);
 
     //重启仿真引擎
     Boolean rebootEmulationEngine();

@@ -14,5 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserQueueMessageDto {
     private String sum;
+    private String userName;
     private Integer ranking;
 }

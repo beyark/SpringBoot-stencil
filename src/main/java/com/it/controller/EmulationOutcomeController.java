@@ -26,7 +26,6 @@ public class EmulationOutcomeController {
     @Resource
     private EmulationOutcomeService emulationOutcomeService;
 
-
     @ApiOperation("生成XML文件(测试)")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "historyProcessId",value = "历史记录编号",readOnly = true,paramType = "path"),
@@ -59,11 +58,12 @@ public class EmulationOutcomeController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "historyProcessId",value = "历史记录编号",readOnly = true,paramType = "path"),
             @ApiImplicitParam(name = "startEmulationTime",value = "开始仿真时间",readOnly = true,paramType = "path"),
-            @ApiImplicitParam(name = "endEmulationTime",value = "结束仿真时间",readOnly = true,paramType = "path")
+            @ApiImplicitParam(name = "endEmulationTime",value = "结束仿真时间",readOnly = true,paramType = "path"),
+            @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path")
     })
     @GetMapping("/startSimulation")
-    public AjaxResponse startSimulation(Integer historyProcessId,String startEmulationTime,String endEmulationTime){
-        boolean flag = emulationOutcomeService.startSimulation(historyProcessId,startEmulationTime,endEmulationTime);
+    public AjaxResponse startSimulation(Integer historyProcessId,String startEmulationTime,String endEmulationTime,String userName){
+        boolean flag = emulationOutcomeService.startSimulation(historyProcessId,startEmulationTime,endEmulationTime,userName);
         return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
     }
 
@@ -78,10 +78,14 @@ public class EmulationOutcomeController {
     }
 
     @ApiOperation("中止仿真")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "historyProcessId",value = "历史记录编号",readOnly = true,paramType = "path"),
+            @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path")
+    })
     @GetMapping("/discontinueEmulation")
-    public AjaxResponse discontinueEmulation(){
-        emulationOutcomeService.discontinueEmulation();
-        return AjaxResponse.success();
+    public AjaxResponse discontinueEmulation(String userName,String historyProcessId){
+        boolean flag = emulationOutcomeService.discontinueEmulation(userName, historyProcessId);
+        return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.OTHER_ERROR),"仿真终止失败");
     }
 
     @ApiOperation("重启引擎(测试)")
