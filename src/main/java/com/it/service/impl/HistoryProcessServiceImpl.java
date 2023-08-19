@@ -89,8 +89,7 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
         }
         ResultDto2 resultDto = null;
         try {
-            //说明是另存为按钮
-            //2、调用接口，拿到总体数据
+            //调用接口，拿到总体数据
             ProcessInquiryVo processInquiryVo = new ProcessInquiryVo();
             processInquiryVo.setAuthorization(saveHistoricalProcessesVO.getAuthorization());
             processInquiryVo.setEnvironment(saveHistoricalProcessesVO.getEnvironment());
@@ -239,17 +238,21 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
                 for (Activity activity : activityList) {
                     //1、先根据活动ID查询活动信息
                     Activity activityMessage = null;
+                    //另存
                     if ("saveAs".equals(saveHistoricalProcessesVO.getSaveType())) {
                         activityMessage = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>()
                                 .eq("id", activity.getId())
                                 .eq("history_process_id", historyProcessDomain.getHistoryProcessId()));
-                    } else if ("saveAs".equals(saveHistoricalProcessesVO.getSaveType()) && historyProcessId != 0) {
+                    //修改
+                    } else if ("save".equals(saveHistoricalProcessesVO.getSaveType()) && historyProcessId != 0) {
                         activityMessage = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>()
                                 .eq("id", activity.getId())
                                 .eq("history_process_id", historyProcessId));
+                    //第一次保存
                     } else {
                         activityMessage = activityService.getBaseMapper().selectOne(new QueryWrapper<Activity>()
-                                .eq("id", activity.getId()));
+                                .eq("id", activity.getId())
+                                .eq("history_process_id",historyProcessDomain.getHistoryProcessId()));
                     }
                     activityMessage.setUpdataTime(new Date());
                     // 设置参数效验为 1

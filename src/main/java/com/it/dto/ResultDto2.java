@@ -82,6 +82,8 @@ public class ResultDto2 {
         private NodeSize nodeSize;
         private Boolean __edit;
         private String type;
+        private List departmentList;
+        private String biaodan111_id;
     }
 
     @Data
