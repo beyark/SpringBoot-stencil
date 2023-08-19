@@ -9,6 +9,7 @@ import com.it.domain.*;
 import com.it.dto.MyResponseDto;
 import com.it.dto.ResponseDto;
 import com.it.service.*;
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -67,8 +68,8 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         try {
             // 定义文件名和路径
             String fileName = historyProcessId + "-" + System.currentTimeMillis() + ".xml";
-            String filePath = "C:\\test\\" + fileName;
-//        String filePath = "/LCFZ/java/xml/" + fileName;
+//            String filePath = "C:\\test\\" + fileName;
+            String filePath = "/LCFZ/java/xml/" + fileName;
 
             // 创建 PrintWriter 对象，用于输出 XML 内容到文件
             PrintWriter writer = null;
@@ -568,7 +569,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
-            long timestamp = date.getTime() / 1000; // 将毫秒转换为秒
+            long timestamp = date.getTime(); // 将毫秒转换为秒
 
             // 当前仿真时间
             writer.println("    <ModelElementAnimationText id=\"10\">");
@@ -593,7 +594,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             System.out.println("XML文件已生成：" + filePath);
             return filePath;
         }catch (Exception e){
-            e.printStackTrace();
+//            e.printStackTrace();
             System.out.println("生成XML失败...");
             return "error";
         }
@@ -703,6 +704,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             //创建HttpHeaders对象，并设置请求头信息
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            headers.set("version","v2");
 
             //创建HttpEntity对象，将bodyMap和headers设置到请求实体中
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
@@ -729,9 +731,13 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     @Override
     public MyResponseDto fetchEngineState() {
         OkHttpClient client = new OkHttpClient();
+        Headers headers = new Headers.Builder()
+                .add("version","v2")
+                .build();
         Request request = new Request.Builder()
                 .url("http://10.230.3.11:80/animation?command=status")
                 .addHeader("Accept-Charset", "UTF-8")
+                .headers(headers)
                 .build();
         MyResponseDto myResponseDto = null;
         try (Response response = client.newCall(request).execute()) {
@@ -801,7 +807,8 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             }
             myResponseDto.setValue(newMap);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+//            throw new RuntimeException(e);
+            System.out.println("获取引擎执行中返回的状态信息失败...");
         }
         return myResponseDto;
     }
@@ -836,17 +843,30 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     //持续仿真
     @Override
     public MyResponseDto sustainEmulation(Integer velocityValue) {
-        String url = "http://10.230.3.11:80/animation?command=step&interupt=" + velocityValue;
-        restTemplate.getForObject(url, String.class);
-        MyResponseDto myResponseDto = this.fetchEngineState();
-        return myResponseDto;
+        try {
+            String url = "http://10.230.3.11:80/animation?command=step&interupt=" + velocityValue;
+
+            //创建HttpHeaders对象，并设置请求头信息
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("version","v2");
+
+            //创建HttpEntity对象，将headers设置到请求实体中
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            //定义url地址，发送post请求
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            //获取仿真状态
+            MyResponseDto myResponseDto = this.fetchEngineState();
+            return myResponseDto;
+        }catch (Exception e){
+            return null;
+        }
     }
 
     //中止仿真
     @Override
     @Transactional
     public boolean discontinueEmulation(String userName,String historyProcessId) {
-        String url = "http://10.230.3.11:80/animation?command=quit";
         try {
             boolean user = userService.userFZ(userName);
             if (user){
@@ -870,9 +890,10 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     // 执行删除操作(整体流程)
                     emulationTimeOutcomeService.getBaseMapper().delete(emulationTimeOutcomeLambdaQueryWrapper);
                 }
+
                 //获取Value数据
                 MyResponseDto myResponse = emulationOutcomeService.fetchEngineState();
-                System.out.println("Value:"+myResponse.getValue());
+//                System.out.println("Value:"+myResponse.getValue());
                 Map<String, Object> map = myResponse.getValue();
                 //存储整体仿真数据
                 EmulationTimeOutcome emulationTimeOutcome = new EmulationTimeOutcome();
@@ -907,10 +928,21 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     }
                 }
                 //终止仿真
-                restTemplate.getForObject(url, String.class);
+                String url = "http://10.230.3.11:80/animation?command=quit";
+
+                //创建HttpHeaders对象，并设置请求头信息
+                HttpHeaders headers = new HttpHeaders();
+                headers.set("version","v2");
+
+                //创建HttpEntity对象，将headers设置到请求实体中
+                HttpEntity<String> entity = new HttpEntity<>(headers);
+
+                //定义url地址，发送post请求
+                ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
                 //删除当前仿真用户
                 userService.removeUser(userName);
-                System.out.println(userName + "删除成功(仿真被正常终止)...");
+                System.out.println(userName + "删除成功(仿真被终止)...");
             }
             return true;
         } catch (Exception e) {
@@ -922,13 +954,27 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     //重启仿真引擎
     @Override
     public Boolean rebootEmulationEngine() {
-        String url = "http://10.230.3.11:8080/open-pse-file";
-        String flag = restTemplate.getForObject(url, String.class);
-        if (flag != null && "start".equals(flag)) {
-            //重启成功
-            return true;
-        }
-        return false;
+       try {
+           String url = "http://10.230.3.11:80/open-pse-file";
+
+           //创建HttpHeaders对象，并设置请求头信息
+           HttpHeaders headers = new HttpHeaders();
+           headers.set("version","v1");
+
+           //创建HttpEntity对象，将headers设置到请求实体中
+           HttpEntity<String> entity = new HttpEntity<>(headers);
+
+           ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+           String flag = response.getBody();
+           if (!flag.isEmpty() && "start".equals(flag)) {
+               //重启成功
+               return true;
+           }
+       }catch (Exception e){
+           System.out.println("重启仿真引擎失败");
+           return false;
+       }
+       return false;
     }
 
     //获取引擎状态
@@ -936,13 +982,21 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     public String getEngineState() {
         try {
             String url = "http://10.230.3.11:80/status";
-            String body = restTemplate.getForObject(url, String.class);
-            JSONObject jsonObject = JSONObject.parseObject(body);
+
+            //创建HttpHeaders对象，并设置请求头信息
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("version","v2");
+
+            //创建HttpEntity对象，将headers设置到请求实体中
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+            JSONObject jsonObject = JSONObject.parseObject(response.getBody());
             String mode = (String) jsonObject.get("mode");
             System.out.println("引擎状态为：" + mode);
             return mode;
         }catch (Exception e){
-            e.printStackTrace();
             System.out.println("获取引擎状态失败...");
             return "error";
         }

@@ -12,8 +12,10 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MyResponseDto {
-    //当前仿真时间
+    //引擎返回时间
     private String time;
+    //当前时间
+    private String dateTime;
     //进度
     private String progress;
     private Map<String, Object> movingImages;

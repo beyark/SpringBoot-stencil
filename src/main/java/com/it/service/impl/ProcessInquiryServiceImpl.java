@@ -1,10 +1,10 @@
 package com.it.service.impl;
 
+import org.springframework.beans.factory.annotation.Value;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-//import com.it.dto.ResultDto;
 import com.it.dto.ResultDto2;
 import com.it.dto.SelectProcessListDto;
 import com.it.service.ProcessInquiryService;
@@ -13,13 +13,10 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @program: SpringBoot-stencil
- * @description:
- * @author: 胡浩
  * @create: 2023-07-18 22:11
  **/
 @Service
@@ -28,9 +25,13 @@ public class ProcessInquiryServiceImpl implements ProcessInquiryService {
     @Resource
     private RestTemplate restTemplate;
 
+    @Value("${thirdparty.api.url}")
+    private String thirdPartyApiUrl;
+
     @Override
     public SelectProcessListDto selectProcessList(ProcessInquiryVo processInquiryVo) {
-        String url = "http://172.16.23.26:10069/physical/searchByLabel";
+        System.out.println("==="+thirdPartyApiUrl);
+        String url = "http://"+thirdPartyApiUrl+":10069/physical/searchByLabel";
         //header参数
         HttpHeaders headers = new HttpHeaders();
         headers.add("authorization", processInquiryVo.getAuthorization());
@@ -69,7 +70,7 @@ public class ProcessInquiryServiceImpl implements ProcessInquiryService {
 
     @Override
     public ResultDto2 selectProcessDetails(ProcessInquiryVo processInquiryVo) {
-        String url = "http://172.16.23.26:18686/processView/findOneFlowChart";
+        String url = "http://"+thirdPartyApiUrl+":18686/processView/findOneFlowChart";
 
         //header参数
         HttpHeaders headers = new HttpHeaders();
