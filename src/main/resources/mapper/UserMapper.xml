@@ -10,9 +10,11 @@
             <result property="historyProcessId" column="history_process_id" jdbcType="INTEGER"/>
             <result property="startEmulationTime" column="start_emulation_time" jdbcType="TIMESTAMP"/>
             <result property="endEmulationTime" column="end_emulation_time" jdbcType="TIMESTAMP"/>
+            <result property="isCq" column="is_cq" jdbcType="INTEGER"/>
+
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_name,history_process_id,start_emulation_time,end_emulation_time
+        id,user_name,history_process_id,start_emulation_time,end_emulation_time,is_cq
     </sql>
 </mapper>

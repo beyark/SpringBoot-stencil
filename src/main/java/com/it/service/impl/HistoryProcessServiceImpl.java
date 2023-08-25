@@ -1,9 +1,11 @@
 package com.it.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.it.domain.*;
+import com.it.dto.HistoryProcessVo;
 import com.it.dto.ResultDto2;
 import com.it.dto.SelectHistoryProcessDto;
 import com.it.mapper.HistoryProcessMapper;
@@ -18,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -133,6 +137,7 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
             HistoryProcess historyProcess = historyProcessService.getBaseMapper().selectById(historyProcessId);
             System.out.println("用户名称:" + saveHistoricalProcessesVO.getUserName());
             if (historyProcess == null) {
+                //说明数据库没有该流程，第一次必须存储流程数据
                 historyProcessDomain = new HistoryProcess();
                 historyProcessDomain.setId(saveHistoricalProcessesVO.getHistoryProcess().getId());
                 historyProcessDomain.setName(saveHistoricalProcessesVO.getHistoryProcess().getName());
@@ -143,6 +148,12 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
                 historyProcessDomain.setCreateTime(new Date());
                 historyProcessDomain.setUserName(saveHistoricalProcessesVO.getUserName());
                 historyProcessMapper.inserts(historyProcessDomain);
+            }else {
+                //说明数据库有该流程，需要进行修改数据
+                historyProcess.setStartEmulationTime(saveHistoricalProcessesVO.getHistoryProcess().getStartEmulationTime());
+                historyProcess.setEndEmulationTime(saveHistoricalProcessesVO.getHistoryProcess().getEndEmulationTime());
+                historyProcess.setUpdateTime(new Date());
+                historyProcessMapper.updateById(historyProcess);
             }
             System.out.println("历史流程:" + historyProcessDomain);
 
@@ -372,6 +383,8 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
         queryWrapper.eq("user_name", map.get("userName"));
         IPage<HistoryProcess> page = this.page(new Query<HistoryProcess>().getPage(map), queryWrapper);
         PageUtils pageUtils = new PageUtils(page);
+        List<HistoryProcessVo> originalList = (List<HistoryProcessVo>) pageUtils.getList();
+        pageUtils.setList(originalList);
         return pageUtils;
     }
 
@@ -408,6 +421,16 @@ public class HistoryProcessServiceImpl extends ServiceImpl<HistoryProcessMapper,
         }
         selectHistoryProcessDto.setGatewayList(gatewayVoList);
         return selectHistoryProcessDto;
+    }
+
+    //效验历史流程名称
+    @Override
+    public boolean processValidationByName(String name) {
+        HistoryProcess historyProcess = this.getBaseMapper().selectOne(new LambdaQueryWrapper<HistoryProcess>().eq(HistoryProcess::getName, name));
+        if (historyProcess == null){
+            return true;
+        }
+        return false;
     }
 }
 

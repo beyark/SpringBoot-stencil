@@ -81,109 +81,116 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             if (flag) {
                 try {
                     System.out.println("引擎就位！！！");
+                    User user1 = userService.getBaseMapper().selectOne(new LambdaQueryWrapper<User>().eq(User::getUserName, user.getUserName()));
+                    user1.setIsCq(0);
+                    userService.getBaseMapper().updateById(user1);
                     boolean bool = true;
                     while (bool) {
                         //获取当前用户，如果当前用户没了，说明点击了终止仿真。
                         User userVerify = userService.getBaseMapper().selectOne(new QueryWrapper<User>().eq("user_name", user.getUserName()));
-                        if (userVerify != null){
-                            //调用执行引擎的状态信息接口（获取引擎返回的时间戳）
-                            MyResponseDto myResponseDto = emulationOutcomeService.fetchEngineState();
-                            long time = Long.parseLong(myResponseDto.getTime());
+                        //调用执行引擎的状态信息接口（获取引擎返回的时间戳）
+                        MyResponseDto myResponseDto = emulationOutcomeService.fetchEngineState();
+                        if (userVerify != null) {//&& userVerify.getIsCq() == 0
+                            if (myResponseDto != null){
+                                long time = Long.parseLong(myResponseDto.getTime());
 //                        System.out.println("引擎返回的时间戳：" + time);
-                            //获取用户输入的开始时间
-                            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            Date startDate = null;
-                            try {
-                                startDate = sdf.parse(DateUtil.forString(user.getStartEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
-                            } catch (ParseException e) {
-                                throw new RuntimeException(e);
-                            }
-                            long startTime = startDate.getTime();
+                                //获取用户输入的开始时间
+                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                Date startDate = null;
+                                try {
+                                    startDate = sdf.parse(DateUtil.forString(user.getStartEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
+                                } catch (ParseException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                long startTime = startDate.getTime();
 //                        System.out.println("用户输入的开始时间：" + startTime);
 
-                            //获取用户输入的结束时间
-                            Date endDate = null;
-                            try {
-                                endDate = sdf.parse(DateUtil.forString(user.getEndEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
-                            } catch (ParseException e) {
-                                throw new RuntimeException(e);
-                            }
-                            long endTime = endDate.getTime();
+                                //获取用户输入的结束时间
+                                Date endDate = null;
+                                try {
+                                    endDate = sdf.parse(DateUtil.forString(user.getEndEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
+                                } catch (ParseException e) {
+                                    throw new RuntimeException(e);
+                                }
+                                long endTime = endDate.getTime();
 //                        System.out.println("用户输入的结束时间：" + endTime);
-                            //如果引擎返回的时间 + 用户输入的当前时间 大于等于 用户输入结束时间，说明仿真流程结束
-                            if ((time + startTime) >= endTime) {
-                                bool = false;
-                                //1、查询结果表中是否存在该流程的仿真结果了，如果存在先删除在存储一份，保证一个流程对应一个结果。
-                                List<ActivityOutcome> activityOutcomeList = activityOutcomeService.getBaseMapper().selectList(new QueryWrapper<ActivityOutcome>().eq("user_name", userVerify.getUserName())
-                                        .eq("history_process_id", userVerify.getHistoryProcessId()));
-                                List<EmulationTimeOutcome> emulationTimeOutcomeList = emulationTimeOutcomeService.getBaseMapper().selectList(new QueryWrapper<EmulationTimeOutcome>().eq("user_name", userVerify.getUserName())
-                                        .eq("history_process_id", userVerify.getHistoryProcessId()));
-                                if (activityOutcomeList.size() > 0 && emulationTimeOutcomeList.size() > 0){
-                                    //2、删除活动 & 整体流程结果数据
-                                    // 设置批量删除条件(活动)
-                                    LambdaQueryWrapper<ActivityOutcome> activityOutcomeLambdaQueryWrapper = Wrappers.lambdaQuery();
-                                    activityOutcomeLambdaQueryWrapper.eq(ActivityOutcome::getUserName, userVerify.getUserName())
-                                            .eq(ActivityOutcome::getHistoryProcessId, userVerify.getHistoryProcessId());
-                                    // 执行删除操作(活动)
-                                    activityOutcomeService.getBaseMapper().delete(activityOutcomeLambdaQueryWrapper);
-                                    // 设置批量删除条件(整体流程)
-                                    LambdaQueryWrapper<EmulationTimeOutcome> emulationTimeOutcomeLambdaQueryWrapper = Wrappers.lambdaQuery();
-                                    emulationTimeOutcomeLambdaQueryWrapper.eq(EmulationTimeOutcome::getUserName, userVerify.getUserName())
-                                            .eq(EmulationTimeOutcome::getHistoryProcessId, userVerify.getHistoryProcessId());
-                                    // 执行删除操作(整体流程)
-                                    emulationTimeOutcomeService.getBaseMapper().delete(emulationTimeOutcomeLambdaQueryWrapper);
-                                }
-                                //获取Value数据
-                                MyResponseDto myResponse = emulationOutcomeService.fetchEngineState();
-                                System.out.println("Value:"+myResponse.getValue());
-                                Map<String, Object> map = myResponse.getValue();
-                                //存储整体仿真数据
-                                EmulationTimeOutcome emulationTimeOutcome = new EmulationTimeOutcome();
-                                emulationTimeOutcome.setDisposeTimeMax((String) map.get("4"));
-                                emulationTimeOutcome.setDisposeTimeMin((String) map.get("7"));
-                                emulationTimeOutcome.setDisposeTimeAvg((String) map.get("1"));
-                                emulationTimeOutcome.setAwaitTimeMax((String) map.get("5"));
-                                emulationTimeOutcome.setAwaitTimeMin((String) map.get("8"));
-                                emulationTimeOutcome.setAwaitTimeAvg((String) map.get("2"));
-                                emulationTimeOutcome.setFinishTimeMax((String) map.get("6"));
-                                emulationTimeOutcome.setFinishTimeMin((String) map.get("9"));
-                                emulationTimeOutcome.setFinishTimeAvg((String) map.get("3"));
-                                emulationTimeOutcome.setCreateTime(new Date());
-                                emulationTimeOutcome.setHistoryProcessId(user.getHistoryProcessId());
-                                emulationTimeOutcome.setUserName(user.getUserName());
-                                emulationTimeOutcomeService.getBaseMapper().insert(emulationTimeOutcome);
-                                //存储各个活动数据
-                                Set<String> keys = map.keySet();
-                                for (String key : keys) {
-                                    //将key为1-10的数据，保留
-                                    int num = Integer.parseInt(key);
-                                    if (num >= 1 && num <= 10) {
-                                        continue;
-                                    }else {
-                                        ResponseDto responseDto = (ResponseDto) map.get(key);
-                                        ActivityOutcome activityOutcome = new ActivityOutcome();
-                                        BeanUtils.copyProperties(responseDto,activityOutcome);
-                                        activityOutcome.setCreateTime(new Date());
-                                        activityOutcome.setHistoryProcessId(user.getHistoryProcessId());
-                                        activityOutcome.setUserName(user.getUserName());
-                                        activityOutcomeService.getBaseMapper().insert(activityOutcome);
+                                //如果引擎返回的时间 + 用户输入的当前时间 大于等于 用户输入结束时间，说明仿真流程结束
+                                if ((time + startTime) >= endTime) {
+                                    bool = false;
+                                    //1、查询结果表中是否存在该流程的仿真结果了，如果存在先删除在存储一份，保证一个流程对应一个结果。
+                                    List<ActivityOutcome> activityOutcomeList = activityOutcomeService.getBaseMapper().selectList(new QueryWrapper<ActivityOutcome>().eq("user_name", userVerify.getUserName())
+                                            .eq("history_process_id", userVerify.getHistoryProcessId()));
+                                    List<EmulationTimeOutcome> emulationTimeOutcomeList = emulationTimeOutcomeService.getBaseMapper().selectList(new QueryWrapper<EmulationTimeOutcome>().eq("user_name", userVerify.getUserName())
+                                            .eq("history_process_id", userVerify.getHistoryProcessId()));
+                                    if (activityOutcomeList.size() > 0 && emulationTimeOutcomeList.size() > 0) {
+                                        //2、删除活动 & 整体流程结果数据
+                                        // 设置批量删除条件(活动)
+                                        LambdaQueryWrapper<ActivityOutcome> activityOutcomeLambdaQueryWrapper = Wrappers.lambdaQuery();
+                                        activityOutcomeLambdaQueryWrapper.eq(ActivityOutcome::getUserName, userVerify.getUserName())
+                                                .eq(ActivityOutcome::getHistoryProcessId, userVerify.getHistoryProcessId());
+                                        // 执行删除操作(活动)
+                                        activityOutcomeService.getBaseMapper().delete(activityOutcomeLambdaQueryWrapper);
+                                        // 设置批量删除条件(整体流程)
+                                        LambdaQueryWrapper<EmulationTimeOutcome> emulationTimeOutcomeLambdaQueryWrapper = Wrappers.lambdaQuery();
+                                        emulationTimeOutcomeLambdaQueryWrapper.eq(EmulationTimeOutcome::getUserName, userVerify.getUserName())
+                                                .eq(EmulationTimeOutcome::getHistoryProcessId, userVerify.getHistoryProcessId());
+                                        // 执行删除操作(整体流程)
+                                        emulationTimeOutcomeService.getBaseMapper().delete(emulationTimeOutcomeLambdaQueryWrapper);
                                     }
+                                    //获取Value数据
+                                    MyResponseDto myResponse = emulationOutcomeService.fetchEngineState();
+                                    System.out.println("Value:" + myResponse.getValue());
+                                    Map<String, Object> map = myResponse.getValue();
+                                    //存储整体仿真数据
+                                    EmulationTimeOutcome emulationTimeOutcome = new EmulationTimeOutcome();
+                                    emulationTimeOutcome.setDisposeTimeMax((String) map.get("4"));
+                                    emulationTimeOutcome.setDisposeTimeMin((String) map.get("7"));
+                                    emulationTimeOutcome.setDisposeTimeAvg((String) map.get("1"));
+                                    emulationTimeOutcome.setAwaitTimeMax((String) map.get("5"));
+                                    emulationTimeOutcome.setAwaitTimeMin((String) map.get("8"));
+                                    emulationTimeOutcome.setAwaitTimeAvg((String) map.get("2"));
+                                    emulationTimeOutcome.setFinishTimeMax((String) map.get("6"));
+                                    emulationTimeOutcome.setFinishTimeMin((String) map.get("9"));
+                                    emulationTimeOutcome.setFinishTimeAvg((String) map.get("3"));
+                                    emulationTimeOutcome.setCreateTime(new Date());
+                                    emulationTimeOutcome.setHistoryProcessId(user.getHistoryProcessId());
+                                    emulationTimeOutcome.setUserName(user.getUserName());
+                                    emulationTimeOutcomeService.getBaseMapper().insert(emulationTimeOutcome);
+                                    //存储各个活动数据
+                                    Set<String> keys = map.keySet();
+                                    for (String key : keys) {
+                                        //将key为1-10的数据，保留
+                                        int num = Integer.parseInt(key);
+                                        if (num >= 1 && num <= 10) {
+                                            continue;
+                                        } else {
+                                            ResponseDto responseDto = (ResponseDto) map.get(key);
+                                            ActivityOutcome activityOutcome = new ActivityOutcome();
+                                            BeanUtils.copyProperties(responseDto, activityOutcome);
+                                            activityOutcome.setCreateTime(new Date());
+                                            activityOutcome.setHistoryProcessId(user.getHistoryProcessId());
+                                            activityOutcome.setUserName(user.getUserName());
+                                            activityOutcomeService.getBaseMapper().insert(activityOutcome);
+                                        }
+                                    }
+                                    //删除用户
+                                    this.removeUser(user.getUserName());
+                                    System.out.println(user.getUserName() + "删除成功(仿真流程结束).....");
                                 }
-                                //删除用户
-                                this.removeUser(user.getUserName());
-                                System.out.println(user.getUserName() + "删除成功(仿真流程结束)...");
+
                             }
-                        }else {
+                        } else {
                             bool = false;
                         }
                     }
-                }catch (Exception e){
+                } catch (Exception e) {
                     System.out.println("");
                 }
+            } else {
+                //删除用户
+                this.removeUser(user.getUserName());
+                System.out.println(user.getUserName() + "删除成功(仿真流程结束).");
             }
-            //删除用户
-            this.removeUser(user.getUserName());
-            System.out.println(user.getUserName() + "删除成功(仿真流程结束)...");
             return "用户执行完毕...";
         }
         return "队列中没有用户...";
@@ -214,6 +221,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public User getUserByUserName(String userName) {
         User user = this.getBaseMapper().selectOne(new QueryWrapper<User>().eq("user_name", userName));
         return user;
+    }
+
+    //删除全部用户
+    @Override
+    public void deleteUserAll() {
+        baseMapper.delete(null);
     }
 }
 

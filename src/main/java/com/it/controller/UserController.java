@@ -1,5 +1,6 @@
 package com.it.controller;
 
+import com.it.domain.User;
 import com.it.dto.UserQueueMessageDto;
 import com.it.exception.CustomError;
 import com.it.exception.CustomErrorType;
@@ -75,7 +76,7 @@ public class UserController {
     })
     @PostMapping("/userFZ")
     public AjaxResponse userFZ(@RequestParam("userName") String userName) {
-        boolean flag = userService.userFZ(userName);
-        return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
+        User user = userService.getUserByUserName(userName);
+        return user != null ? AjaxResponse.success(user) : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
     }
 }

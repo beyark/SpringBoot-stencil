@@ -10,10 +10,10 @@ import com.it.dto.MyResponseDto;
 public interface EmulationOutcomeService{
 
     //生成XML文件
-    String generateXML(Integer historyProcessId,String startEmulationTime);
+    String generateXML(Integer historyProcessId,String startEmulationTime,String endEmulationTime);
 
     //加载XML文件
-    boolean efficacyXML(String url);
+    String efficacyXML(String url);
 
     //获取引擎执行中返回的状态信息
     MyResponseDto fetchEngineState();

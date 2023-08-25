@@ -81,4 +81,14 @@ public class HistoryProcessController {
          SelectHistoryProcessDto selectHistoryProcessDto = historyProcessService.selectHistoryProcess(historyProcessId);
         return AjaxResponse.success(selectHistoryProcessDto);
     }
+
+    @ApiOperation("效验历史流程名称")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "name",value = "历史流程名称",readOnly = true,paramType = "path")
+    })
+    @GetMapping("/processValidationByName")
+    public AjaxResponse processValidationByName(String name){
+        boolean flag = historyProcessService.processValidationByName(name);
+        return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
+    }
 }

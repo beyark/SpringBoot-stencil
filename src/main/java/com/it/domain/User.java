@@ -42,6 +42,11 @@ public class User implements Serializable {
     @JsonFormat(pattern="yyyy-MM-dd HH:mm:ss",timezone = "GMT+8")
     private Date endEmulationTime;
 
+    /**
+     * 引擎是否重启
+     */
+    private Integer isCq;
+
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 }

@@ -18,10 +18,10 @@ public class UserTaskService {
 
     public UserTaskService(UserController userController) {
         this.userController = userController;
-        scheduleTask();
+//        startUserTask();
     }
 
-    @Scheduled(fixedDelay = 5000)
+//    @Scheduled(fixedDelay = 5000)
     public void executeUserTask() {
         if (isExecuting) {
             return;
@@ -32,7 +32,7 @@ public class UserTaskService {
         System.out.println(result);
     }
 
-    private void scheduleTask() {
+    protected void startUserTask() {
         ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
         executorService.scheduleWithFixedDelay(this::executeUserTask, 0, 5, TimeUnit.SECONDS);
     }
