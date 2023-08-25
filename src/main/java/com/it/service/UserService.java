@@ -30,4 +30,7 @@ public interface UserService extends IService<User> {
 
     //根据用户名称获取用户信息
     User getUserByUserName(String userName);
+
+    //删除全部用户
+    void deleteUserAll();
 }

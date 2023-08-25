@@ -13,6 +13,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import javax.annotation.Resource;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -28,9 +29,9 @@ public class ProcessInquiryServiceImpl implements ProcessInquiryService {
     @Value("${thirdparty.api.url}")
     private String thirdPartyApiUrl;
 
+    //查询流程列表
     @Override
     public SelectProcessListDto selectProcessList(ProcessInquiryVo processInquiryVo) {
-        System.out.println("==="+thirdPartyApiUrl);
         String url = "http://"+thirdPartyApiUrl+":10069/physical/searchByLabel";
         //header参数
         HttpHeaders headers = new HttpHeaders();
@@ -68,6 +69,7 @@ public class ProcessInquiryServiceImpl implements ProcessInquiryService {
         return selectProcessListDto;
     }
 
+    //查询流程详细信息
     @Override
     public ResultDto2 selectProcessDetails(ProcessInquiryVo processInquiryVo) {
         String url = "http://"+thirdPartyApiUrl+":18686/processView/findOneFlowChart";

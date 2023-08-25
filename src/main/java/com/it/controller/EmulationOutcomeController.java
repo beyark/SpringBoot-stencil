@@ -26,35 +26,36 @@ public class EmulationOutcomeController {
     @Resource
     private EmulationOutcomeService emulationOutcomeService;
 
-    @ApiOperation("生成XML文件(测试)")
+    @ApiOperation("生成XML文件")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "historyProcessId",value = "历史记录编号",readOnly = true,paramType = "path"),
-            @ApiImplicitParam(name = "startEmulationTime",value = "开始仿真时间",readOnly = true,paramType = "path")
+            @ApiImplicitParam(name = "startEmulationTime",value = "开始仿真时间",readOnly = true,paramType = "path"),
+            @ApiImplicitParam(name = "endEmulationTime",value = "结束仿真时间",readOnly = true,paramType = "path")
     })
     @GetMapping("/generateXML")
-    public AjaxResponse generateXML(Integer historyProcessId,String startEmulationTime){
-        String url = emulationOutcomeService.generateXML(historyProcessId, startEmulationTime);
+    public AjaxResponse generateXML(Integer historyProcessId,String startEmulationTime,String endEmulationTime){
+        String url = emulationOutcomeService.generateXML(historyProcessId, startEmulationTime,endEmulationTime);
         return url != null ? AjaxResponse.success(url) : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
     }
 
-    @ApiOperation("加载XML(测试)")
+    @ApiOperation("加载XML")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "url",value = "xml地址",readOnly = true,paramType = "path"),
     })
     @GetMapping("/efficacyXML")
     public AjaxResponse efficacyXML(String url){
-        boolean flag = emulationOutcomeService.efficacyXML(url);
-        return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));
+        String flag = emulationOutcomeService.efficacyXML(url);
+        return AjaxResponse.success(flag);
     }
 
-    @ApiOperation("获取引擎执行中状态信息(测试)")
+    @ApiOperation("获取引擎执行中状态信息")
     @GetMapping("/fetchEngineState")
     public AjaxResponse fetchEngineState(){
         MyResponseDto myResponseDto = emulationOutcomeService.fetchEngineState();
         return AjaxResponse.success(myResponseDto);
     }
 
-    @ApiOperation("第一次开启仿真(测试)")
+    @ApiOperation("第一次开启仿真")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "historyProcessId",value = "历史记录编号",readOnly = true,paramType = "path"),
             @ApiImplicitParam(name = "startEmulationTime",value = "开始仿真时间",readOnly = true,paramType = "path"),
@@ -88,14 +89,14 @@ public class EmulationOutcomeController {
         return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.OTHER_ERROR),"仿真终止失败");
     }
 
-    @ApiOperation("重启引擎(测试)")
+    @ApiOperation("重启引擎")
     @GetMapping("/rebootEmulationEngine")
     public AjaxResponse rebootEmulationEngine(){
         Boolean flag = emulationOutcomeService.rebootEmulationEngine();
         return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR,"重启引擎失败"));
     }
 
-    @ApiOperation("获取引擎状态(测试)")
+    @ApiOperation("获取引擎状态")
     @GetMapping("/getEngineState")
     public AjaxResponse getEngineState(){
         String flag = emulationOutcomeService.getEngineState();

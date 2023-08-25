@@ -10,19 +10,16 @@ import com.it.dto.MyResponseDto;
 import com.it.dto.ResponseDto;
 import com.it.service.*;
 import okhttp3.Headers;
+import okhttp3.*;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.springframework.beans.BeanUtils;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.*;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
-
 import javax.annotation.Resource;
 import java.io.File;
 import java.io.FileWriter;
@@ -31,8 +28,8 @@ import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @program: SpringBoot-stencil
@@ -61,15 +58,17 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
     private EmulationTimeOutcomeService emulationTimeOutcomeService;
     @Resource
     private ActivityOutcomeService activityOutcomeService;
+    @Resource
+    private XmlUrlService xmlUrlService;
 
     //生成XML文件
     @Override
-    public String generateXML(Integer historyProcessId, String startEmulationTime) {
+    public String generateXML(Integer historyProcessId, String startEmulationTime,String endEmulationTime) {
         try {
             // 定义文件名和路径
             String fileName = historyProcessId + "-" + System.currentTimeMillis() + ".xml";
-//            String filePath = "C:\\test\\" + fileName;
-            String filePath = "/LCFZ/java/xml/" + fileName;
+            String filePath = "C:\\test\\" + fileName;
+//            String filePath = "/LCFZ/java/xml/" + fileName;
 
             // 创建 PrintWriter 对象，用于输出 XML 内容到文件
             PrintWriter writer = null;
@@ -79,6 +78,17 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                 throw new RuntimeException(e);
             }
 
+            //设置头部（endEmulationTime）
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date date1 = dateFormat.parse(endEmulationTime);
+            Date date2 = dateFormat.parse(startEmulationTime);
+            long differenceInMilliseconds = (date1.getTime() - date2.getTime()) * 2;
+            long seconds = differenceInMilliseconds / 1000;
+            long minutes = seconds / 60;
+            long hours = minutes / 60;
+            long days = hours / 24;
+            String timeString = String.format("%02d:%02d:%02d:%02d", days, hours % 24, minutes % 60, seconds % 60);
+
             // 输出 XML 头信息和根元素
             writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
             writer.println("<!DOCTYPE Model SYSTEM \"https://a-herzog.github.io/Warteschlangensimulator/Simulator.dtd\">");
@@ -87,47 +97,35 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             // 输出模型版本、作者、客户数、热身阶段和终止时间等元素
             writer.println("  <ModelVersion>5.3.0</ModelVersion>");
             writer.println("  <ModelAuthor>msewi</ModelAuthor>");
-            writer.println("  <ModelClients Active=\"1\">10000000</ModelClients>");
+            writer.println("  <ModelClients Active=\"0\">10000000</ModelClients>");
             writer.println("  <ModelWarmUpPhase>0.01</ModelWarmUpPhase>");
-            writer.println("  <ModelTerminationTime Active=\"0\">10:00:00:00</ModelTerminationTime>");
+            writer.println("  <ModelTerminationTime Active=\"1\">"+ timeString +"</ModelTerminationTime>");
             writer.println("  <ModelElements>");
 
             Map<String, String> map = new HashMap<>(); // 用于存储分发器
             //编写活动XML
             List<Activity> activityList = activityService.getBaseMapper().selectList(new QueryWrapper<Activity>().eq("history_process_id", historyProcessId));
+            //终点边的唯一性变量
+            int zyz = 1;
+            //终点边的集合
+            List<String> zdList = new ArrayList<>();
             for (Activity activity : activityList) {
                 if (activity.getType() == 1) {
                     // activity.getType() == 1 说明为开始活动
-                    // 活动id
-                    writer.println("    <ModelElementSource id=\"" + "1" + activity.getActivityId() + "\">");
-                    // 活动名称
-                    writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
-                    // 活动的坐标
+                    //设置事件发生源（Source）以及定义边和起点绑定
+                    writer.println("    <ModelElementSource id=\"" + "12" + activity.getActivityId() + "\">");
+                    writer.println("      <ModelElementName>Clients</ModelElementName>");
                     writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
-                    // 活动执行人
-                    writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
-                    // 设置开始活动的下一个节点
-                    List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
-                            .eq("activity_one", activity.getId()));
-                    List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
-                            .eq("value", 0)
-                            .eq("activity_id", activity.getId()));
-                    if (activityActivityList != null && activityActivityList.size() == 1) {
-                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivityList.get(0).getId() + "\" Type=\"Out\"/>");
-                    } else {
-                        if (activityGatewayList != null && activityGatewayList.size() > 0) {
-                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGatewayList.get(0).getId() + "\" Type=\"Out\"/>");
-                        }
-                    }
-                    // 活动处理时间、等待处理时间
-                    extracted(writer, activity);
+                    writer.println("      <ModelElementConnection Element=\"" + "11" + activity.getActivityId() + "\" Type=\"Out\"/>");
+
                     // 设置活动执行频率
                     Integer executionFrequency = activity.getExecutionFrequency(); //executionFrequency: 执行频率
+                    Integer distinctValue = activity.getDistinctValue();
                     if (activity.getTimeType() == 0 && activity.getEventType() == 0) {
                         // 秒(固定值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
                         // 设置活动事件输入国定值
-                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                        writer.println("      <ModelElementBatchData Size=\"" + distinctValue + "\"/>");
                     } else if (activity.getTimeType() == 0 && activity.getEventType() == 1) {
                         // 秒(随机值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Seconds\">" + executionFrequency + "</ModelElementExpression>");
@@ -150,7 +148,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                         // 分(固定值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
                         // 设置活动事件输入国定值
-                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                        writer.println("      <ModelElementBatchData Size=\"" + distinctValue + "\"/>");
                     } else if (activity.getTimeType() == 1 && activity.getEventType() == 1) {
                         // 分(随机值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Minutes\">" + executionFrequency + "</ModelElementExpression>");
@@ -173,7 +171,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                         // 时(固定值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
                         // 设置活动事件输入国定值
-                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                        writer.println("      <ModelElementBatchData Size=\"" + distinctValue + "\"/>");
                     } else if (activity.getTimeType() == 2 && activity.getEventType() == 1) {
                         // 时(随机值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Hours\">" + executionFrequency + "</ModelElementExpression>");
@@ -196,7 +194,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                         // 天(固定值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
                         // 设置活动事件输入国定值
-                        writer.println("      <ModelElementBatchData Size=\"" + executionFrequency + "\"/>");
+                        writer.println("      <ModelElementBatchData Size=\"" + distinctValue + "\"/>");
                     } else if (activity.getTimeType() == 3 && activity.getEventType() == 1) {
                         // 天(随机值)
                         writer.println("      <ModelElementExpression FirstArrivalAtStart=\"1\" TimeBase=\"Days\">" + executionFrequency + "</ModelElementExpression>");
@@ -215,7 +213,41 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                         result = result.substring(0, result.length() - 1);
                         writer.println("      <ModelElementBatchData Size=\"" + result + "\"/>");
                     }
+
                     writer.println("    </ModelElementSource>");
+
+                    writer.println("    <ModelElementEdge id=\"" + "11" +  activity.getActivityId() + "\">");
+                    writer.println("      <ModelElementConnection Element1=\"" + "12" + activity.getActivityId() + "\" Element2=\"" + "1" + activity.getActivityId() + "\" Type=\"Edge\"/>");
+                    writer.println("    </ModelElementEdge>");
+
+                    // 活动id
+                    writer.println("    <ModelElementProcessStation id=\"" + "1" + activity.getActivityId() + "\">");
+                    // 活动名称
+                    writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
+                    // 活动的坐标
+                    writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
+                    // 活动执行人
+                    writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
+
+                    writer.println("      <ModelElementConnection Element=\"" + "11" + activity.getActivityId() + "\" Type=\"In\"/>");
+
+                    // 设置开始活动的下一个节点
+                    List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
+                            .eq("activity_one", activity.getId()));
+                    List<ActivityGateway> activityGatewayList = activityGatewayService.getBaseMapper().selectList(new QueryWrapper<ActivityGateway>().eq("history_process_id", historyProcessId)
+                            .eq("value", 0)
+                            .eq("activity_id", activity.getId()));
+                    if (activityActivityList != null && activityActivityList.size() == 1) {
+                        writer.println("      <ModelElementConnection Element=\"" + "11" + activityActivityList.get(0).getId() + "\" Type=\"Out\"/>");
+                    } else {
+                        if (activityGatewayList != null && activityGatewayList.size() > 0) {
+                            writer.println("      <ModelElementConnection Element=\"" + "11" + activityGatewayList.get(0).getId() + "\" Type=\"Out\"/>");
+                        }
+                    }
+                    // 活动处理时间、等待处理时间
+                    extracted(writer, activity);
+
+                    writer.println("    </ModelElementProcessStation>");
 
                     // 设置该活动的TextXML
                     extracted1(writer, activity);
@@ -362,14 +394,23 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     extracted1(writer, activity);
                 } else if (activity.getType() == 2) {
                     // activity.getType() == 2 说明为结束活动
+                    //设置终点边 绑定终点
+                    writer.println("    <ModelElementEdge id=\"" + "11" +  activity.getActivityId() + zyz + "\">");
+                    writer.println("      <ModelElementConnection Element1=\"" + "1" + activity.getActivityId() + "\" Element2=\"" + "13888" +  "\" Type=\"Edge\"/>");
+                    writer.println("    </ModelElementEdge>");
+                    zdList.add("11" +  activity.getActivityId() + zyz);
+
                     // 活动id
-                    writer.println("    <ModelElementDispose id=\"" + "1" + activity.getActivityId() + "\">");
+                    writer.println("    <ModelElementProcessStation id=\"" + "1" + activity.getActivityId() + "\">");
                     // 活动名称
                     writer.println("      <ModelElementName>" + activity.getName() + "</ModelElementName>");
                     // 活动的坐标
                     writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"0\" y=\"60\"/>");
                     // 活动执行人
                     writer.println("      <ModelElementOperators Alternative=\"1\" Count=\"1\" Group=\"" + "1" + activity.getActivityId() + "\"/>");
+
+                    writer.println("      <ModelElementConnection Element=\"" + "11" +  activity.getActivityId() + zyz + "\" Type=\"Out\"/>");
+
                     // 设置中间活动的上和下的节点
                     List<ActivityActivity> activityActivityList = activityActivityService.getBaseMapper().selectList(new QueryWrapper<ActivityActivity>().eq("history_process_id", historyProcessId)
                             .eq("activity_two", activity.getId()));
@@ -387,7 +428,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     }
                     // 活动处理时间、等待处理时间
                     extracted(writer, activity);
-                    writer.println("    </ModelElementDispose>");
+                    writer.println("    </ModelElementProcessStation>");
 
                     // 设置该活动的TextXML
                     extracted1(writer, activity);
@@ -486,6 +527,14 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                     }
                 }
             }
+
+            //设置终点（Dispose）
+            writer.println("   <ModelElementDispose id=\"" + "13888"  + "\">");
+            writer.println("      <ModelElementSize h=\"50\" w=\"100\" x=\"930\" y=\"215\"/>");
+            for (String zd : zdList) {
+                writer.println("      <ModelElementConnection Element=\"" + zd + "\" Type=\"In\"/>");
+            }
+            writer.println("   </ModelElementDispose>");
 
             // 仿真整体平均处理时间
             writer.println("    <ModelElementAnimationText id=\"1\">");
@@ -647,7 +696,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         writer.println("      <ModelElementSize h=\"30\" w=\"83\" x=\"410\" y=\"755\"/>");
         writer.println("      <ModelElementFontSize>14</ModelElementFontSize>");
         writer.println("      <ModelElementColor>0,0,0</ModelElementColor>");
-        writer.println("      <ModelElementAnimationMode Type=\"Number\">Statistics_max(" + "1" + activity.getActivityId() + ";nr)</ModelElementAnimationMode>");
+        writer.println("      <ModelElementAnimationMode Type=\"Number\">WIP_max(" + "1" + activity.getActivityId() + ")</ModelElementAnimationMode>");
         writer.println("    </ModelElementAnimationText>");
         // 设置该活动执行次数
         writer.println("    <ModelElementAnimationText id=\"" + "9" + activity.getActivityId() + "\">");
@@ -664,66 +713,73 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         Integer disposeTime = activity.getDisposeTime(); //disposeTime: 处理时间
         if (activity.getDisposeTimeType() == 0) {
             //秒
-            writer.println("      <ModelElementDistribution Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + disposeTime + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression  Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\"> " + disposeTime + "</ModelElementExpression>");
         } else if (activity.getDisposeTimeType() == 1) {
             //分
-            writer.println("      <ModelElementDistribution Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (disposeTime * 60) + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression  Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">" + disposeTime * 60 + "</ModelElementExpression>");
         } else if (activity.getDisposeTimeType() == 2) {
             //时
-            writer.println("      <ModelElementDistribution Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (disposeTime * 60 * 60) + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression  Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">" + disposeTime * 60 * 60 + "</ModelElementExpression>");
         } else if (activity.getDisposeTimeType() == 3) {
             //天
-            writer.println("      <ModelElementDistribution Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (disposeTime * 60 * 60 * 24) + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression  Status=\"ProcessTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">" + disposeTime * 60 * 60 * 24 + "</ModelElementExpression>");
         }
 
         // 活动等待时间
         Integer awaitTime = activity.getAwaitTime();//awaitTimeType: 等待时间
         if (activity.getAwaitTimeType() == 0) {
             //秒
-            writer.println("      <ModelElementDistribution Status=\"WaitTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + awaitTime + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression Type=\"PostProcessingTime\">" + awaitTime + "</ModelElementExpression>");
         } else if (activity.getAwaitTimeType() == 1) {
             //分
-            writer.println("      <ModelElementDistribution Status=\"WaitTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (awaitTime * 60) + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression Type=\"PostProcessingTime\">" + awaitTime * 60 + "</ModelElementExpression>");
         } else if (activity.getAwaitTimeType() == 2) {
             //时
-            writer.println("      <ModelElementDistribution Status=\"WaitTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (awaitTime * 60 * 60) + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression Type=\"PostProcessingTime\">" + awaitTime * 60 * 60 + "</ModelElementExpression>");
         } else if (activity.getAwaitTimeType() == 3) {
             //天
-            writer.println("      <ModelElementDistribution Status=\"WaitTime\" TimeBase=\"Seconds\" Type=\"ProcessingTime\">Exponential distribution (" + (awaitTime * 60 * 60 * 24) + ")</ModelElementDistribution>");
+            writer.println("      <ModelElementExpression Type=\"PostProcessingTime\">" + awaitTime * 60 * 60 * 24 + "</ModelElementExpression>");
         }
     }
 
     //加载XML文件
     @Override
-    public boolean efficacyXML(String url) {
+    public String efficacyXML(String url) {
         try {
-            //创建MultiValueMap对象，并添加文件参数
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("model", new FileSystemResource(new File(url)));
+            // 创建 OkHttpClient 对象
+            OkHttpClient client = new OkHttpClient();
 
-            //创建HttpHeaders对象，并设置请求头信息
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            headers.set("version","v2");
+            // 创建请求体
+            MediaType mediaType = MediaType.parse("multipart/form-data");
+            RequestBody body = new MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("model", "filename", RequestBody.create(MediaType.parse("application/octet-stream"), new File(url)))
+                    .build();
 
-            //创建HttpEntity对象，将bodyMap和headers设置到请求实体中
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            // 创建请求对象
+            Request request = new Request.Builder()
+                    .url("http://10.230.3.11:80/upload")
+                    .post(body)
+                    .addHeader("Content-Type", "multipart/form-data")
+                    .addHeader("version", "v2")
+                    .build();
 
-            //定义url地址，发送post请求
-            String serverUrl = "http://10.230.3.11:80/upload";
-            ResponseEntity<String> response = restTemplate.exchange(serverUrl, HttpMethod.POST, requestEntity, String.class);
+            // 发送请求并获取响应
+            Response response = client.newCall(request).execute();
+            String values = response.body().string();
 
-            //获取返回值
-            String vales = response.getBody();
-            if ("WebServer.Upload.Success,model.Check.Ok".equals(vales)) {
+            if ("WebServer.Upload.Success,model.Check.Ok".equals(values)) {
                 System.out.println("XML加载成功...");
-                return true;
+                return values;
+            } else {
+                System.out.println("XML文件加载失败(" + values + ")");
+                String result = values.replace("WebServer.Upload.Success,model.Check.Error!", "");
+                return result;
             }
-            System.out.println("XML文件加载失败("+vales+")");
-            return false;
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println("XML文件加载失败...");
-            return false;
+            e.printStackTrace();
+            return "WebServer.Upload.Success,model.Check.Error!";
         }
     }
 
@@ -799,7 +855,6 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                                 break;
                         }
                     }
-
                 }
                 Activity activity = activityService.getBaseMapper().selectById(str.substring(1));
                 responseDto.setActivityName(activity.getName());
@@ -807,7 +862,6 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
             }
             myResponseDto.setValue(newMap);
         } catch (IOException e) {
-//            throw new RuntimeException(e);
             System.out.println("获取引擎执行中返回的状态信息失败...");
         }
         return myResponseDto;
@@ -815,23 +869,35 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
 
     //第一次开启仿真
     @Override
+    @Transactional
     public boolean startSimulation(Integer historyProcessId, String startEmulationTime, String endEmulationTime,String userName) {
         //1、重启仿真引擎
         Boolean bool = this.rebootEmulationEngine();
         if (bool) {
             System.out.println("重启仿真引擎成功！");
             //2、生成XML文件 返回文件存储地址
-            String url = this.generateXML(historyProcessId, startEmulationTime);
+            String url = this.generateXML(historyProcessId, startEmulationTime,endEmulationTime);
+            // 保存该用户的xml路径(先删除，在新增，保证唯一)
+            List<XmlUrl> xmlUrls = xmlUrlService.getBaseMapper().selectList(new LambdaQueryWrapper<XmlUrl>().eq(XmlUrl::getUserName, userName));
+            if (xmlUrls.size() > 0){
+                List<Integer> collect = xmlUrls.stream()
+                        .map(XmlUrl::getId)
+                        .collect(Collectors.toList());
+                xmlUrlService.getBaseMapper().deleteBatchIds(collect);
+            }
+            xmlUrlService.getBaseMapper().insert(new XmlUrl(null, userName, url));
             if (!"error".equals(url)){
                 //3、加载XML文件
-                boolean flag = this.efficacyXML(url);
-                if (flag){
+                String flag = this.efficacyXML(url);
+                if ("WebServer.Upload.Success,model.Check.Ok".equals(flag)){
                     //4、开始仿真(仿真之前判断XML是否加载成功，引擎是否正常)
                     String state = this.getEngineState();
                     if ("Model editor".equals(state)) {
                         this.sustainEmulation(50);
                         return true;
                     }
+                }else {
+                    return false;
                 }
             }else {
                 return false;
@@ -870,6 +936,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         try {
             boolean user = userService.userFZ(userName);
             if (user){
+                System.out.println("进入");
                 //1、查询结果表中是否存在该流程的仿真结果了，如果存在先删除在存储一份，保证一个流程对应一个结果。
                 List<ActivityOutcome> activityOutcomeList = activityOutcomeService.getBaseMapper().selectList(new QueryWrapper<ActivityOutcome>().eq("user_name", userName)
                         .eq("history_process_id", historyProcessId));
@@ -927,6 +994,11 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
                         activityOutcomeService.getBaseMapper().insert(activityOutcome);
                     }
                 }
+
+                System.out.println("准备执行终止仿真接口");
+                //删除当前仿真用户
+                userService.removeUser(userName);
+                System.out.println(userName + "删除成功(仿真被终止)...");
                 //终止仿真
                 String url = "http://10.230.3.11:80/animation?command=quit";
 
@@ -939,10 +1011,7 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
 
                 //定义url地址，发送post请求
                 ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-
-                //删除当前仿真用户
-                userService.removeUser(userName);
-                System.out.println(userName + "删除成功(仿真被终止)...");
+                System.out.println("执行终止仿真接口完毕");
             }
             return true;
         } catch (Exception e) {

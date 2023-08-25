@@ -5,7 +5,9 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.CopyOnWriteArraySet;
+
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.it.domain.User;
 import com.it.dto.MyResponseDto;
 import com.it.service.impl.EmulationOutcomeServiceImpl;
@@ -37,12 +39,16 @@ public class WebSocketServer {
     private Thread simulationThread;
     //用户名称
     private String userName;
+    //退出循环条件
+    private boolean num = true;
+
 
     /**
      * 连接成功时调用的方法(可以接收一个参数噢)
      */
     @OnOpen
     public void onOpen(@PathParam("userName") String userName, Session session) {
+        this.num = true;
         this.userName = userName;
         this.session = session;
         webSocketSet.add(this);
@@ -74,6 +80,8 @@ public class WebSocketServer {
         simulationThread = new Thread(() -> {
             //循环条件
             boolean flag = true;
+            //引擎崩溃重启只一次
+            int nums = 0;
             //循环保持持续仿真
             while (flag) {
                 try {
@@ -85,7 +93,25 @@ public class WebSocketServer {
                         EmulationOutcomeServiceImpl emulationOutcomeService = context.getBean(EmulationOutcomeServiceImpl.class);
                         // 1、首先判断引擎状态是否正常（不为 Model editor、Animation 或者 接口报错都为不正常状态）
                         String engineState = emulationOutcomeService.getEngineState();
-                        if ("Model editor".equals(engineState) || "Animation".equals(engineState) || "error".equals(engineState)) {
+                        if ((!"Model editor".equals(engineState) && !"Animation".equals(engineState)) || "error".equals(engineState)) {
+                            //1.1、如果引擎为不正常情况根据用户名称获取user信息（拿到调用第一次仿真接口的参数信息）
+                            UserServiceImpl userService = context.getBean(UserServiceImpl.class);
+                            if (userService == null) {
+                                System.out.println("userService is null");
+                            } else {
+                                if (nums == 0){
+                                    System.out.println("引擎崩了，准备重启...");
+                                    nums++;
+                                    User user = userService.getBaseMapper().selectOne(new LambdaQueryWrapper<User>().eq(User::getUserName, userName));
+                                    user.setIsCq(1);
+                                    userService.getBaseMapper().updateById(user);
+                                    //userService.executeUser();
+                                }else {
+                                    System.out.println("WebSocket循环退出！");
+                                    flag = false;
+                                }
+                            }
+                        } else {
                             // 2、获取流程仿真执行状态信息
                             if (emulationOutcomeService == null) {
                                 System.out.println("emulationOutcomeService is null");
@@ -98,63 +124,65 @@ public class WebSocketServer {
                                 System.out.println("userService is null");
                             } else {
                                 User user = userService.getUserByUserName(userName);
-                                if (user != null) {
-                                    //引擎返回的时间
-                                    long time = Long.parseLong(myResponseDto.getTime());
-                                    //获取用户输入的开始时间
-                                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                                    Date startDate = null;
-                                    try {
-                                        startDate = sdf.parse(DateUtil.forString(user.getStartEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
-                                    } catch (ParseException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                    long startTime = startDate.getTime();
-                                    //将合并的当前时间挫转为日期字符串，并赋值给myResponseDto对象，返回前端
-                                    Date date = new Date(time + startTime);
-                                    String formattedDate = sdf.format(date);
-                                    myResponseDto.setDateTime(formattedDate);
-                                    //设置百分比进度算法
-                                    Date startDateTime = user.getStartEmulationTime();
-                                    Date endDateTime = user.getEndEmulationTime();
-                                    Date currentDateTime = sdf.parse(formattedDate);
-                                    long totalTime = endDateTime.getTime() - startDateTime.getTime();
-                                    long elapsedTime = currentDateTime.getTime() - startDateTime.getTime();
-                                    double progress = (double) elapsedTime / totalTime;
-                                    myResponseDto.setProgress((int) (progress * 100) + "%");
+                                if (user != null && num) {
+                                    if (myResponseDto != null) {
+                                        //引擎返回的时间
+                                        long time = Long.parseLong(myResponseDto.getTime());
+                                        //获取用户输入的开始时间
+                                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                                        Date startDate = null;
+                                        try {
+                                            startDate = sdf.parse(DateUtil.forString(user.getStartEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
+                                        } catch (ParseException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                        long startTime = startDate.getTime();
+                                        //获取用户输入的结束时间
+                                        Date endDate = null;
+                                        try {
+                                            endDate = sdf.parse(DateUtil.forString(user.getEndEmulationTime(), "yyyy-MM-dd HH:mm:ss"));
+                                        } catch (ParseException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                        long endTime = endDate.getTime();
+                                        String formattedDate = null;
+                                        if ((time + startTime) > endTime){
+                                            //如果大于结束时间，将结束时间挫转为日期字符串，并赋值给myResponseDto对象，返回前端
+                                            Date date = new Date(endTime);
+                                            formattedDate = sdf.format(date);
+                                            myResponseDto.setDateTime(formattedDate);
+                                        }else {
+                                            //将合并的当前时间挫转为日期字符串，并赋值给myResponseDto对象，返回前端
+                                            Date date = new Date(time + startTime);
+                                            formattedDate = sdf.format(date);
+                                            myResponseDto.setDateTime(formattedDate);
+                                        }
+                                        //设置百分比进度算法
+                                        Date startDateTime = user.getStartEmulationTime();
+                                        Date endDateTime = user.getEndEmulationTime();
+                                        Date currentDateTime = sdf.parse(formattedDate);
+                                        long totalTime = endDateTime.getTime() - startDateTime.getTime();
+                                        long elapsedTime = currentDateTime.getTime() - startDateTime.getTime();
+                                        double progress = (double) elapsedTime / totalTime;
+                                        int zhi = (int) (progress * 100);
+                                        if (zhi > 100){
+                                            zhi = 100;
+                                        }
+                                        myResponseDto.setProgress(zhi + "%");
 
-                                    //转json字符串
-                                    String jsonStr = JSON.toJSONString(myResponseDto);
-                                    //向前端发生消息
-                                    sendInfo(jsonStr);
-                                    //停止间隔
-                                    try {
-                                        Thread.sleep(velocityValue);
-                                    }catch (Exception e){
-                                        System.out.println("定时器卡顿一下");
+
+                                        //转json字符串
+                                        String jsonStr = JSON.toJSONString(myResponseDto);
+                                        //向前端发生消息
+                                        sendInfo(jsonStr);
+                                        //停止间隔
+                                        try {
+                                            Thread.sleep(velocityValue);
+                                        } catch (Exception e) {
+                                            System.out.println("定时器卡顿一下");
+                                        }
                                     }
                                 } else {
-                                    flag = false;
-                                }
-                            }
-                        } else {
-                            //如果引擎为不正常情况
-                            //1、根据用户名称获取user信息（拿到调用第一次仿真接口的参数信息）
-                            UserServiceImpl userService = context.getBean(UserServiceImpl.class);
-                            if (userService == null) {
-                                System.out.println("userService is null");
-                            } else {
-                                User user = userService.getUserByUserName(userName);
-                                //2、调用第一次仿真接口（重启引擎 ，生成XML文件，加载XML文件，开始仿真重新走一遍）
-                                boolean bool = emulationOutcomeService.startSimulation(user.getHistoryProcessId(),
-                                        DateUtil.forString(user.getStartEmulationTime(), "yyyy-MM-dd HH:mm:ss"),
-                                        DateUtil.forString(user.getEndEmulationTime(), "yyyy-MM-dd HH:mm:ss"),
-                                        user.getUserName());
-                                //3、重启失败（删除用户 退出循环）
-                                if (bool == false) {
-                                    //删除用户
-                                    userService.removeUser(user.getUserName());
-                                    System.out.println(user.getUserName() + "删除成功(仿真流程结束)...");
                                     flag = false;
                                 }
                             }
@@ -162,6 +190,7 @@ public class WebSocketServer {
                     }
                 } catch (Exception e) {
                     log.info("连接断开");
+                    e.printStackTrace();
 //                    throw new RuntimeException(e);
                 }
             }
@@ -183,13 +212,12 @@ public class WebSocketServer {
         }
     }
 
-
     /**
      * 给前端发送消息。
      */
     public void sendInfo(String message) throws IOException {
 //        log.info(message);
-        log.info("成功！"+ this.velocityValue);
+        log.info("成功！" + this.velocityValue);
         for (WebSocketServer item : webSocketSet) {
             try {
                 item.sendMessage(message);
@@ -209,6 +237,7 @@ public class WebSocketServer {
      */
     @OnClose
     public void onClose() {
+        this.num = false;
         webSocketSet.remove(this);
         subOnlineCount();
         this.stopSimulation();

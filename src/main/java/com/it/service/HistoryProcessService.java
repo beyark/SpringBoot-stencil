@@ -26,5 +26,6 @@ public interface HistoryProcessService extends IService<HistoryProcess> {
     //查询历史流程
     SelectHistoryProcessDto selectHistoryProcess(Integer historyProcessId);
 
-
+    //效验历史流程名称
+    boolean processValidationByName(String name);
 }
