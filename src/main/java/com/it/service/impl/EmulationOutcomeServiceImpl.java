@@ -67,8 +67,8 @@ public class EmulationOutcomeServiceImpl implements EmulationOutcomeService {
         try {
             // 定义文件名和路径
             String fileName = historyProcessId + "-" + System.currentTimeMillis() + ".xml";
-            String filePath = "C:\\test\\" + fileName;
-//            String filePath = "/LCFZ/java/xml/" + fileName;
+//            String filePath = "C:\\test\\" + fileName;
+            String filePath = "/LCFZ/java/xml/" + fileName;
 
             // 创建 PrintWriter 对象，用于输出 XML 内容到文件
             PrintWriter writer = null;

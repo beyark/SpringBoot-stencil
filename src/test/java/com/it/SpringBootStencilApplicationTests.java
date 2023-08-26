@@ -9,6 +9,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.event.annotation.BeforeTestClass;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -56,17 +58,16 @@ class SpringBootStencilApplicationTests {
 
     @Test
     void test2() {
-        String dateString = "1970-01-01 12:00:00";
-        String pattern = "yyyy-MM-dd HH:mm:ss";
+        String encodedDate = "2023-08-26 11%3A39%3A53";
 
-        SimpleDateFormat sdf = new SimpleDateFormat(pattern);
+        // URL 解码
+        String decodedDate = null;
         try {
-            Date date = sdf.parse(dateString);
-            long timestamp = date.getTime() / 1000; // 将毫秒转换为秒
-            System.out.println("Timestamp: " + timestamp);
-        } catch (ParseException e) {
-            System.out.println("Error occurred while parsing the date: " + e.getMessage());
+            decodedDate = URLDecoder.decode(encodedDate, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
+        System.out.println(decodedDate);
     }
 
     @Test

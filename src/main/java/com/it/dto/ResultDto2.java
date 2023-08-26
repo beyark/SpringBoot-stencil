@@ -1,8 +1,11 @@
 package com.it.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -13,7 +16,8 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ResultDto2 {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ResultDto2 implements Serializable {
     private String process;
     private String processId;
     private List<Node> nodes;
@@ -22,6 +26,7 @@ public class ResultDto2 {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Node {
         private String id;
         private String type;
@@ -38,6 +43,7 @@ public class ResultDto2 {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Edge {
         private String id;
         private String type;
@@ -59,6 +65,7 @@ public class ResultDto2 {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Properties {
         private String component;
         private String showTitle;
@@ -83,12 +90,14 @@ public class ResultDto2 {
         private Boolean __edit;
         private String type;
         private List departmentList;
+        private List relationProcess;
         private String biaodan111_id;
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class NodeSize {
         private Integer width;
         private Integer height;
@@ -99,7 +108,15 @@ public class ResultDto2 {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class GraphProperties {
+        private String liuchengmingcheng;
+        private String liuchengbianhao;
+        private String version;
+        private String liucheng1_id;
+        private String jiexizhuangtai;
+        private String panduantiaojian;
+        private String relmodifyTime;
         private String biaodan111_id;
         private String miji;
         private String guanjiankongzhidian;
@@ -131,23 +148,20 @@ public class ResultDto2 {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Text {
         private Double x;
         private Double y;
         private String value;
-
-        // getters and setters
     }
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Point {
         private Double x;
         private Double y;
-
-        // getters and setters
     }
-
 }
 

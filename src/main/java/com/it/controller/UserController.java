@@ -12,6 +12,8 @@ import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 
 @RestController
 @RequestMapping("/user")
@@ -30,12 +32,25 @@ public class UserController {
             @ApiImplicitParam(name = "startEmulationTime",value = "开始仿真时间",readOnly = true,paramType = "path"),
             @ApiImplicitParam(name = "endEmulationTime",value = "结束仿真时间",readOnly = true,paramType = "path")
     })
-    @PostMapping("/add")
+    @GetMapping("/add")
     public AjaxResponse addUser(@RequestParam("userName") String userName,
                                 @RequestParam("historyProcessId") Integer historyProcessId,
                                 @RequestParam("startEmulationTime") String startEmulationTime,
                                 @RequestParam("endEmulationTime") String endEmulationTime) {
-        boolean flag = userService.addUser(userName,historyProcessId,startEmulationTime,endEmulationTime);
+        // URL 解码
+        String startTime = null;
+        String endTime = null;
+        try {
+            startTime = URLDecoder.decode(startEmulationTime, "UTF-8");
+            endTime = URLDecoder.decode(endEmulationTime, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        User user = userService.getUserByUserName(userName);
+        if (user != null){
+            userService.removeById(user.getId());
+        }
+        boolean flag = userService.addUser(userName,historyProcessId,startTime,endTime);
         return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.DATABASE_OP_ERROR),"新增用户失败");
     }
 
@@ -43,7 +58,7 @@ public class UserController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "UserName",value = "用户名称",readOnly = true,paramType = "path"),
     })
-    @PostMapping("/remove")
+    @GetMapping("/remove")
     public AjaxResponse removeUser(@RequestParam("userName") String userName) {
         Boolean flag = userService.removeUser(userName);
         return flag ? AjaxResponse.success() : AjaxResponse.error(new CustomError(CustomErrorType.DATABASE_OP_ERROR),"移除用户失败");
@@ -65,7 +80,7 @@ public class UserController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path"),
     })
-    @PostMapping("/getUserQueue")
+    @GetMapping("/getUserQueue")
     public AjaxResponse getUserQueue(@RequestParam("userName") String userName) {
         UserQueueMessageDto userQueue = userService.getUserQueue(userName);
         return userQueue != null ? AjaxResponse.success(userQueue) : AjaxResponse.error(new CustomError(CustomErrorType.OTHER_ERROR),"该用户没有在队列中");
@@ -74,7 +89,7 @@ public class UserController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "userName",value = "用户名称",readOnly = true,paramType = "path"),
     })
-    @PostMapping("/userFZ")
+    @GetMapping("/userFZ")
     public AjaxResponse userFZ(@RequestParam("userName") String userName) {
         User user = userService.getUserByUserName(userName);
         return user != null ? AjaxResponse.success(user) : AjaxResponse.error(new CustomError(CustomErrorType.SYSTEM_ERROR));

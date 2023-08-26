@@ -52,7 +52,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             user.setStartEmulationTime(startTime);
             user.setEndEmulationTime(endTime);
         } catch (ParseException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+//            throw new RuntimeException(e);
         }
         int num = this.getBaseMapper().insert(user);
         return num == 1 ? true : false;
@@ -84,6 +85,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     User user1 = userService.getBaseMapper().selectOne(new LambdaQueryWrapper<User>().eq(User::getUserName, user.getUserName()));
                     user1.setIsCq(0);
                     userService.getBaseMapper().updateById(user1);
+
                     boolean bool = true;
                     while (bool) {
                         //获取当前用户，如果当前用户没了，说明点击了终止仿真。
@@ -177,14 +179,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                                     this.removeUser(user.getUserName());
                                     System.out.println(user.getUserName() + "删除成功(仿真流程结束).....");
                                 }
-
                             }
                         } else {
                             bool = false;
                         }
                     }
                 } catch (Exception e) {
-                    System.out.println("");
+                    e.printStackTrace();
                 }
             } else {
                 //删除用户

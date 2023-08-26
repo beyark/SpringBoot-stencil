@@ -22,6 +22,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class User implements Serializable {
 
+    @TableId(type = IdType.AUTO)
+    private Integer id;
+
     private String userName;
 
     private int historyProcessId;

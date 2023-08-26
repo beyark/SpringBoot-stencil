@@ -5,7 +5,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.CopyOnWriteArraySet;
-
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.it.domain.User;
@@ -17,13 +16,12 @@ import com.it.util.SpringContextUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
-
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
 import javax.websocket.server.ServerEndpoint;
 
 @Slf4j
-@ServerEndpoint("/websocket/{userName}") //是你连接时的url，如果后端为127.0.0.1:8080/websocket/张三，那么前端websocket连接url写
+@ServerEndpoint("/websocket/{userName}") //是你连接时的url，如果后端为127.0.0.1:8010/websocket/张三，那么前端websocket连接url写
 @Component  // 此注解千万千万不要忘记，它的主要作用就是将这个监听器纳入到Spring容器中进行管理
 public class WebSocketServer {
 
@@ -41,7 +39,6 @@ public class WebSocketServer {
     private String userName;
     //退出循环条件
     private boolean num = true;
-
 
     /**
      * 连接成功时调用的方法(可以接收一个参数噢)
@@ -105,7 +102,6 @@ public class WebSocketServer {
                                     User user = userService.getBaseMapper().selectOne(new LambdaQueryWrapper<User>().eq(User::getUserName, userName));
                                     user.setIsCq(1);
                                     userService.getBaseMapper().updateById(user);
-                                    //userService.executeUser();
                                 }else {
                                     System.out.println("WebSocket循环退出！");
                                     flag = false;
@@ -170,7 +166,6 @@ public class WebSocketServer {
                                         }
                                         myResponseDto.setProgress(zhi + "%");
 
-
                                         //转json字符串
                                         String jsonStr = JSON.toJSONString(myResponseDto);
                                         //向前端发生消息
@@ -191,7 +186,6 @@ public class WebSocketServer {
                 } catch (Exception e) {
                     log.info("连接断开");
                     e.printStackTrace();
-//                    throw new RuntimeException(e);
                 }
             }
         });
